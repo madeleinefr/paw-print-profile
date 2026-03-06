@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # LocalStack - AWS service emulator for local development
+  # Provides local versions of DynamoDB, S3, Lambda, API Gateway, Cognito, SNS, and SES
+  localstack:
+    image: localstack/localstack:latest
+    container_name: paw-print-profile-localstack
+    ports:
+      - "4566:4566"  # LocalStack gateway - all AWS services accessible through this port
+    environment:
+      - SERVICES=dynamodb,s3,lambda,apigateway,cognito-idp,sns,ses
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - vet-pet-network
+
+  # DynamoDB Local - Alternative to LocalStack DynamoDB for dedicated database testing
+  # Can be used independently or alongside LocalStack
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: paw-print-profile-dynamodb
+    ports:
+      - "8000:8000"  # DynamoDB Local port
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    volumes:
+      - "./dynamodb-data:/home/dynamodblocal/data"
+    networks:
+      - vet-pet-network
+
+  # Backend API - Node.js/TypeScript serverless application
+  # Handles all business logic, data access, and AWS service interactions
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: paw-print-profile-backend
+    ports:
+      - "3000:3000"  # Backend API port
+    environment:
+      # Environment detection - tells the app to use LocalStack instead of real AWS
+      - IS_LOCAL=true
+      - LOCALSTACK_HOSTNAME=localstack
+      - AWS_REGION=us-east-1
+      # LocalStack requires dummy credentials for local development
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      # Service endpoints pointing to LocalStack
+      - DYNAMODB_ENDPOINT=http://localstack:4566
+      - S3_ENDPOINT=http://localstack:4566
+      - COGNITO_ENDPOINT=http://localstack:4566
+      - SNS_ENDPOINT=http://localstack:4566
+      # Application configuration
+      - DYNAMODB_TABLE=VetPetRegistry
+      - S3_BUCKET=paw-print-profile-images
+      - NODE_ENV=development
+    depends_on:
+      - localstack
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - vet-pet-network
+    command: npm run dev
+
+  # Frontend - React application
+  # Provides user interface for veterinarians, pet owners, and public users
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: paw-print-profile-frontend
+    ports:
+      - "8080:8080"  # Frontend application port
+    environment:
+      # API endpoint configuration
+      - VITE_API_URL=http://backend:3000
+      - VITE_IS_LOCAL=true
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - vet-pet-network
+    command: npm run dev
+
+# Docker network for inter-service communication
+networks:
+  vet-pet-network:
+    driver: bridge

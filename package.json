@@ -1,0 +1,32 @@
+{
+  "name": "paw-print-profile",
+  "version": "1.0.0",
+  "description": "Paw Print Profile - B2B2C Veterinary Pet Information Management System",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "test:all": "npm run test:backend && npm run test:frontend",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "docker:clean": "docker-compose down -v && rm -rf localstack-data dynamodb-data"
+  },
+  "keywords": [
+    "paw-print-profile",
+    "veterinary",
+    "pet",
+    "registry",
+    "serverless",
+    "aws",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT"
+}
