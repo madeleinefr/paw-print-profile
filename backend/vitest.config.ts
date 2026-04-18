@@ -10,6 +10,7 @@ export default defineConfig({
       AWS_REGION: 'us-east-1',
       AWS_ACCESS_KEY_ID: 'test',
       AWS_SECRET_ACCESS_KEY: 'test',
+      PET_IMAGES_BUCKET: 'paw-print-profile-images-test',
     },
     coverage: {
       provider: 'v8',
