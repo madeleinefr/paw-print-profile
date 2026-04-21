@@ -563,6 +563,26 @@ export class PetRepository {
   }
 
   /**
+   * Update the claiming code and expiry for a pending profile
+   */
+  async updateClaimingCode(petId: string, claimingCode: string, expiryDate: string): Promise<void> {
+    const now = new Date().toISOString()
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: { PK: `PET#${petId}`, SK: 'METADATA' },
+      UpdateExpression: 'SET claimingCode = :code, claimingCodeExpiry = :expiry, GSI4PK = :gsi4pk, GSI4SK = :gsi4sk, updatedAt = :updatedAt',
+      ExpressionAttributeValues: {
+        ':code': claimingCode,
+        ':expiry': expiryDate,
+        ':gsi4pk': `CLAIM#${claimingCode}`,
+        ':gsi4sk': `PET#${petId}`,
+        ':updatedAt': now,
+      },
+    })
+    await this.docClient.send(command)
+  }
+
+  /**
    * Set the isMissing flag on a pet
    */
   async setMissingStatus(petId: string, isMissing: boolean): Promise<Pet> {
