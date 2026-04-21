@@ -4,7 +4,7 @@ services:
   # LocalStack - AWS service emulator for local development
   # Provides local versions of DynamoDB, S3, Lambda, API Gateway, Cognito, SNS, and SES
   localstack:
-    image: localstack/localstack:latest
+    image: localstack/localstack:3.8
     container_name: paw-print-profile-localstack
     ports:
       - "4566:4566"  # LocalStack gateway - all AWS services accessible through this port
