@@ -5,7 +5,7 @@
  * Properties covered:
  *   Property 12: Search criteria matching
  *   Property 13: Complete search results
- *   Property 14: Owner privacy protection in public search
+ *   Property 54: Owner privacy protection in public search
  *
  * Validates: Requirements [FR-11], [FR-12], [FR-15]
  */
@@ -321,9 +321,9 @@ async function createClaimedMissingPet(
   return { petId: profile.petId, ownerId: claimed.ownerId }
 }
 
-// ── Property 14: Owner privacy protection in public search ────────────────────
+// ── Property 54: Owner privacy protection in public search ───────────────────
 
-describe('[FR-15] Property 14: Owner privacy protection in public search', () => {
+describe('[FR-15] Property 54: Owner privacy protection in public search', () => {
   /**
    * **Validates: Requirements [FR-15]**
    *

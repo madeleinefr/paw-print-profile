@@ -3,12 +3,12 @@
  * Uses fast-check with numRuns: 25 against LocalStack at localhost:4566.
  *
  * Properties covered:
- *   Property 1: Care snapshot generation produces unique access codes
- *   Property 2: Care snapshot access works with valid code and fails with invalid/expired codes
- *   Property 3: Care snapshot contains correct pet and emergency contact information
- *   Property 4: Care snapshot expiry is enforced (expired snapshots are not accessible)
- *   Property 5: Only pet owners can create care snapshots for their own pets
- *   Property 6: Snapshots exclude sensitive medical details
+ *   Property 48: Care snapshot generation produces unique access codes
+ *   Property 49: Care snapshot access works with valid code and fails with invalid/expired codes
+ *   Property 50: Care snapshot contains correct pet and emergency contact information
+ *   Property 51: Care snapshot expiry is enforced (expired snapshots are not accessible)
+ *   Property 52: Only pet owners can create care snapshots for their own pets
+ *   Property 53: Snapshots exclude sensitive medical details
  *
  * Validates: Requirements [FR-13]
  */
@@ -108,9 +108,9 @@ async function createClaimedPet(): Promise<{ petId: string; ownerId: string; own
   }
 }
 
-// ── Property 1: Care snapshot generation produces unique access codes ─────────
+// ── Property 48: Care snapshot generation produces unique access codes ────────
 
-describe('[FR-13] Property 1: Care snapshot generation produces unique access codes', () => {
+describe('[FR-13] Property 48: Care snapshot generation produces unique access codes', () => {
   /**
    * **Validates: Requirements [FR-13]**
    *
@@ -139,9 +139,9 @@ describe('[FR-13] Property 1: Care snapshot generation produces unique access co
   }, 300_000)
 })
 
-// ── Property 2: Care snapshot access works with valid code, fails with invalid ─
+// ── Property 49: Care snapshot access works with valid code, fails with invalid
 
-describe('[FR-13] Property 2: Care snapshot access with valid and invalid codes', () => {
+describe('[FR-13] Property 49: Care snapshot access with valid and invalid codes', () => {
   /**
    * **Validates: Requirements [FR-13]**
    *
@@ -199,9 +199,9 @@ describe('[FR-13] Property 2: Care snapshot access with valid and invalid codes'
   }, 300_000)
 })
 
-// ── Property 3: Care snapshot contains correct pet and emergency contact info ─
+// ── Property 50: Care snapshot contains correct pet and emergency contact info
 
-describe('[FR-13] Property 3: Care snapshot contains correct pet and emergency contact information', () => {
+describe('[FR-13] Property 50: Care snapshot contains correct pet and emergency contact information', () => {
   /**
    * **Validates: Requirements [FR-13]**
    *
@@ -259,9 +259,9 @@ describe('[FR-13] Property 3: Care snapshot contains correct pet and emergency c
   }, 300_000)
 })
 
-// ── Property 4: Care snapshot expiry is enforced ──────────────────────────────
+// ── Property 51: Care snapshot expiry is enforced ─────────────────────────────
 
-describe('[FR-13] Property 4: Care snapshot expiry is enforced', () => {
+describe('[FR-13] Property 51: Care snapshot expiry is enforced', () => {
   /**
    * **Validates: Requirements [FR-13]**
    *
@@ -318,9 +318,9 @@ describe('[FR-13] Property 4: Care snapshot expiry is enforced', () => {
   }, 300_000)
 })
 
-// ── Property 5: Only pet owners can create care snapshots for their own pets ──
+// ── Property 52: Only pet owners can create care snapshots for their own pets ─
 
-describe('[FR-13] Property 5: Only pet owners can create care snapshots for their own pets', () => {
+describe('[FR-13] Property 52: Only pet owners can create care snapshots for their own pets', () => {
   /**
    * **Validates: Requirements [FR-13]**
    *
@@ -422,9 +422,9 @@ describe('[FR-13] Property 5: Only pet owners can create care snapshots for thei
 })
 
 
-// ── Property 6: Snapshots exclude sensitive medical details ───────────────────
+// ── Property 53: Snapshots exclude sensitive medical details ──────────────────
 
-describe('[FR-13] Property 6: Snapshots exclude sensitive medical details', () => {
+describe('[FR-13] Property 53: Snapshots exclude sensitive medical details', () => {
   /**
    * **Validates: Requirements [FR-13]**
    *
