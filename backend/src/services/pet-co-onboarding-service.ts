@@ -94,7 +94,7 @@ export class PetCoOnboardingService {
   /**
    * Claim a pet profile (pet owner)
    */
-  async claimProfile(input: ClaimProfileInput): Promise<ClaimProfileResponse> {
+  async claimProfile(input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
     // Validate input data
     const validationErrors = validateClaimProfileData(input)
     throwIfInvalid(validationErrors)
@@ -108,7 +108,7 @@ export class PetCoOnboardingService {
     }
 
     // Claim the profile
-    return await this.petRepo.claimProfile(validation.pet.petId, input)
+    return await this.petRepo.claimProfile(validation.pet.petId, input, ownerId)
   }
 
   /**

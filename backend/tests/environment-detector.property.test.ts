@@ -17,7 +17,7 @@ describe('Feature: paw-print-profile, Environment Detection Properties', () => {
     ;(EnvironmentDetector as any).instance = undefined
   })
 
-  describe('[NFR-MNT-01] Property 1: Local environment detection', () => {
+  describe('[NFR-MNT-01] Property 37: Local environment detection', () => {
     it('should detect local environment when IS_LOCAL=true and provide LocalStack endpoints', () => {
       fc.assert(
         fc.property(
@@ -107,7 +107,7 @@ describe('Feature: paw-print-profile, Environment Detection Properties', () => {
     })
   })
 
-  describe('[NFR-MNT-01] Property 2: Cloud environment detection', () => {
+  describe('[NFR-MNT-01] Property 38: Cloud environment detection', () => {
     it('should detect cloud environment when no local variables are set and provide undefined endpoints', () => {
       fc.assert(
         fc.property(

@@ -138,7 +138,7 @@ describe('[FR-03][FR-05] Property 2: Complete pet record retrieval (co-onboardin
           ownerName: ownerInfo.ownerName,
           ownerEmail: ownerInfo.ownerEmail,
           ownerPhone: ownerInfo.ownerPhone,
-        })
+        }, 'test-owner-id')
 
         const record = await service.findById(created.petId, 'owner', claimed.ownerId)
         expect(record).not.toBeNull()
@@ -251,7 +251,7 @@ describe('[FR-03][FR-04] Property 18: Claiming code uniqueness and expiry', () =
           ownerName: ownerInfo.ownerName,
           ownerEmail: ownerInfo.ownerEmail,
           ownerPhone: ownerInfo.ownerPhone,
-        })
+        }, 'test-owner-id')
 
         const result = await service.validateClaimingCode(created.claimingCode)
         expect(result.valid).toBe(false)
@@ -281,7 +281,7 @@ describe('[FR-04] Property 19: Profile ownership transfer atomicity', () => {
           ownerName: ownerInfo.ownerName,
           ownerEmail: ownerInfo.ownerEmail,
           ownerPhone: ownerInfo.ownerPhone,
-        })
+        }, 'test-owner-id')
 
         expect(result.petId).toBe(created.petId)
         expect(result.profileStatus).toBe('Active')
@@ -310,7 +310,7 @@ describe('[FR-04] Property 19: Profile ownership transfer atomicity', () => {
           ownerName: ownerInfo.ownerName,
           ownerEmail: ownerInfo.ownerEmail,
           ownerPhone: ownerInfo.ownerPhone,
-        })
+        }, 'test-owner-id')
 
         expect(claimed.profileStatus).toBe('Active')
         expect(claimed.ownerId).toBeTruthy()
@@ -332,7 +332,7 @@ describe('[FR-04] Property 19: Profile ownership transfer atomicity', () => {
           ownerName: ownerInfo.ownerName,
           ownerEmail: ownerInfo.ownerEmail,
           ownerPhone: ownerInfo.ownerPhone,
-        })
+        }, 'test-owner-id')
 
         const enriched = await service.enrichProfile(created.petId, claimed.ownerId, enrichData)
 
@@ -367,7 +367,7 @@ describe('[FR-04] Property 19: Profile ownership transfer atomicity', () => {
           ownerName: ownerInfo.ownerName,
           ownerEmail: ownerInfo.ownerEmail,
           ownerPhone: ownerInfo.ownerPhone,
-        })
+        }, 'test-owner-id')
 
         const pendingAfter = await claimingService.findPendingClaims(sharedClinicId)
         const foundAfter = pendingAfter.some((p) => p.petId === created.petId)

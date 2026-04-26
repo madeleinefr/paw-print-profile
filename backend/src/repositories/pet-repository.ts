@@ -144,9 +144,8 @@ export class PetRepository {
   /**
    * Claim a pet profile (pet owner)
    */
-  async claimProfile(petId: string, input: ClaimProfileInput): Promise<ClaimProfileResponse> {
+  async claimProfile(petId: string, input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
     const now = new Date().toISOString()
-    const ownerId = uuidv4() // Generate owner ID
 
     const command = new UpdateCommand({
       TableName: this.tableName,
