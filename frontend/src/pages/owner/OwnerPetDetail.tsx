@@ -151,7 +151,7 @@ export function OwnerPetDetail() {
       reader.onload = async (ev) => {
         const base64 = (ev.target?.result as string).split(',')[1]
         await api.post(`/pets/${petId}/images`, {
-          imageData: base64,
+          imageBase64: base64,
           mimeType: selectedFile.type,
           tags: photoTags.split(',').map((t) => t.trim()).filter(Boolean),
         })
