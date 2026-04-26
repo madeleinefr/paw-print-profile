@@ -13,6 +13,9 @@ import { handler as clinicHandler } from './handlers/clinic-handler'
 import { handler as searchHandler } from './handlers/search-handler'
 import { handler as emergencyToolsHandler } from './handlers/emergency-tools-handler'
 
+import { AWSClientFactory } from './infrastructure/aws-client-factory'
+import { CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
+
 const app = express()
 const port = process.env.PORT || 3000
 
@@ -101,8 +104,26 @@ app.get('/search/pets', wrap(searchHandler))
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Paw Print Profile Backend - Server running on port ${port}`)
   console.log(`Environment: ${process.env.IS_LOCAL === 'true' ? 'Local (LocalStack)' : 'Cloud (AWS)'}`)
   console.log(`Health check: http://localhost:${port}/health`)
+
+  // Ensure S3 bucket exists in LocalStack
+  if (process.env.IS_LOCAL === 'true') {
+    const bucketName = process.env.S3_BUCKET || 'paw-print-profile-images'
+    const factory = new AWSClientFactory()
+    const s3 = factory.createS3Client()
+    try {
+      await s3.send(new HeadBucketCommand({ Bucket: bucketName }))
+      console.log(`S3 bucket "${bucketName}" already exists`)
+    } catch {
+      try {
+        await s3.send(new CreateBucketCommand({ Bucket: bucketName }))
+        console.log(`S3 bucket "${bucketName}" created`)
+      } catch (err) {
+        console.error(`Failed to create S3 bucket "${bucketName}":`, err)
+      }
+    }
+  }
 })

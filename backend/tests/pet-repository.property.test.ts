@@ -304,7 +304,7 @@ describe('[FR-04] Property 19: Profile ownership transfer', () => {
             ownerName: ownerInfo.ownerName,
             ownerEmail: ownerInfo.ownerEmail,
             ownerPhone: ownerInfo.ownerPhone,
-          })
+          }, 'test-owner-id')
 
           // Response assertions
           expect(claimResult.petId).toBe(created.petId)

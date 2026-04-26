@@ -98,7 +98,7 @@ async function createClaimedPet(): Promise<{ petId: string; ownerId: string; own
     ownerName: 'Test Owner',
     ownerEmail: 'owner@example.com',
     ownerPhone: '+19876543210',
-  })
+  }, 'test-owner-id')
 
   return {
     petId: profile.petId,

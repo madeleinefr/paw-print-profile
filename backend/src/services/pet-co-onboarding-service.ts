@@ -94,7 +94,7 @@ export class PetCoOnboardingService {
   /**
    * Claim a pet profile (pet owner)
    */
-  async claimProfile(input: ClaimProfileInput): Promise<ClaimProfileResponse> {
+  async claimProfile(input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
     // Validate input data
     const validationErrors = validateClaimProfileData(input)
     throwIfInvalid(validationErrors)
@@ -108,7 +108,7 @@ export class PetCoOnboardingService {
     }
 
     // Claim the profile
-    return await this.petRepo.claimProfile(validation.pet.petId, input)
+    return await this.petRepo.claimProfile(validation.pet.petId, input, ownerId)
   }
 
   /**
@@ -168,17 +168,29 @@ export class PetCoOnboardingService {
     }
 
     // Get associated records
-    const [vaccines, surgeries] = await Promise.all([
+    const [vaccines, surgeries, images] = await Promise.all([
       this.petRepo.getVaccines(petId),
       this.petRepo.getSurgeries(petId),
-      // TODO: Add images when ImageRepository is implemented
+      this.imageRepo.findByPet(petId),
     ])
+
+    // Generate signed URLs for images so the browser can display them
+    const imagesWithUrls = await Promise.all(
+      images.map(async (img) => {
+        try {
+          const url = await this.imageRepo.getUrl(img.imageId, petId)
+          return { ...img, url }
+        } catch {
+          return img
+        }
+      })
+    )
 
     return {
       pet,
       vaccines,
       surgeries,
-      images: [], // TODO: Populate when ImageRepository is implemented
+      images: imagesWithUrls,
     }
   }
 

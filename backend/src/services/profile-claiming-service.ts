@@ -37,7 +37,7 @@ export class ProfileClaimingService {
    * Validates the claiming code and owner eligibility before transferring.
    * Requirements: [FR-04]
    */
-  async transferOwnership(input: ClaimProfileInput): Promise<ClaimProfileResponse> {
+  async transferOwnership(input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
     // Validate owner eligibility first
     const eligibility = await this.validateOwnerEligibility(input.claimingCode)
     if (!eligibility.eligible) {
@@ -47,7 +47,7 @@ export class ProfileClaimingService {
     }
 
     // Perform the atomic ownership transfer via the repository
-    return this.petRepo.claimProfile(eligibility.pet!.petId, input)
+    return this.petRepo.claimProfile(eligibility.pet!.petId, input, ownerId)
   }
 
   /**

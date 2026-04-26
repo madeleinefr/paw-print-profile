@@ -187,8 +187,9 @@ async function handleClaimProfile(
     }
   }
 
+  const userContext = extractUserContext(event)
   const claimData = JSON.parse(event.body)
-  const result = await coOnboardingService.claimProfile(claimData)
+  const result = await coOnboardingService.claimProfile(claimData, userContext.userId)
 
   return {
     statusCode: 200,

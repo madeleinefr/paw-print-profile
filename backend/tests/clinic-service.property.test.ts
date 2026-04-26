@@ -6,7 +6,7 @@
  *   Property 21: Clinic pet list completeness
  *   Property 22: Clinic pet list fields
  *   Property 24: Pagination consistency
- *   Property 25: Pending claims visibility
+ *   Property 55: Pending claims visibility
  *
  * Validates: Requirements [FR-01], [FR-02]
  */
@@ -224,9 +224,9 @@ describe('[FR-01] Property 24: Pagination consistency', () => {
   }, 600_000)
 })
 
-// ── Property 25: Pending claims visibility ────────────────────────────────────
+// ── Property 55: Pending claims visibility ────────────────────────────────────
 
-describe('[FR-01][FR-02] Property 25: Pending claims visibility', () => {
+describe('[FR-01][FR-02] Property 55: Pending claims visibility', () => {
   /**
    * **Validates: Requirements [FR-01], [FR-02]**
    *
@@ -251,7 +251,7 @@ describe('[FR-01][FR-02] Property 25: Pending claims visibility', () => {
           ownerName: 'Test Owner',
           ownerEmail: 'owner@example.com',
           ownerPhone: '+12345678901',
-        })
+        }, 'test-owner-id')
 
         // Should no longer appear in pending claims
         const pendingAfter = await clinicService.getPendingClaims(clinic.clinicId)

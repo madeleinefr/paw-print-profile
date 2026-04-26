@@ -314,7 +314,7 @@ async function createClaimedMissingPet(
     ownerName: 'Private Owner',
     ownerEmail: 'private@example.com',
     ownerPhone: '+19999999999',
-  })
+  }, 'test-owner-id')
 
   await petRepo.setMissingStatus(profile.petId, true)
 
