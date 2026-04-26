@@ -6,6 +6,9 @@ import { LoginPage } from './pages/LoginPage'
 import { SearchPage } from './pages/SearchPage'
 import { VetDashboard } from './pages/vet/VetDashboard'
 import { VetPets } from './pages/vet/VetPets'
+import { VetPetDetail } from './pages/vet/VetPetDetail'
+import { CreateProfile } from './pages/vet/CreateProfile'
+import { ClinicManagement } from './pages/vet/ClinicManagement'
 import { OwnerDashboard } from './pages/owner/OwnerDashboard'
 import { ClaimPage } from './pages/owner/ClaimPage'
 import './App.css'
@@ -24,6 +27,9 @@ function App() {
             <Route element={<RouteGuard allowedRole="vet" />}>
               <Route path="/vet/dashboard" element={<VetDashboard />} />
               <Route path="/vet/pets" element={<VetPets />} />
+              <Route path="/vet/pets/new" element={<CreateProfile />} />
+              <Route path="/vet/pets/:petId" element={<VetPetDetail />} />
+              <Route path="/vet/clinic" element={<ClinicManagement />} />
             </Route>
 
             {/* Owner-only routes */}
