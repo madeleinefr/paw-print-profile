@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file=.env src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run --reporter=verbose",

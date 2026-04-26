@@ -34,6 +34,9 @@ export function AppLayout() {
             <Link to="/vet/pets">
               <button type="button">Pet Profiles</button>
             </Link>
+            <Link to="/vet/clinic">
+              <button type="button">Clinic Settings</button>
+            </Link>
           </>
         )}
 

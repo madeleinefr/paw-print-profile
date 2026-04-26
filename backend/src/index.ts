@@ -87,6 +87,9 @@ app.get('/care-snapshots/:accessCode', wrap(emergencyToolsHandler))
 // ── Clinic routes ─────────────────────────────────────────────────────────────
 
 app.post('/clinics', wrap(clinicHandler))
+app.get('/clinics/:clinicId/pets', wrap(clinicHandler))
+app.get('/clinics/:clinicId/statistics', wrap(clinicHandler))
+app.post('/clinics/:clinicId/custom-fields', wrap(clinicHandler))
 app.get('/clinics/:clinicId', wrap(clinicHandler))
 app.put('/clinics/:clinicId', wrap(clinicHandler))
 app.delete('/clinics/:clinicId', wrap(clinicHandler))

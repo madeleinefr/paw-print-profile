@@ -173,3 +173,56 @@ button[type="submit"]:hover:not(:disabled) {
     min-width: auto;
   }
 }
+
+
+/* Pet Cards */
+.pet-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.pet-card h4 {
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pet-card p {
+  margin-bottom: 4px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.pet-card a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.pet-card a:hover {
+  text-decoration: underline;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background: none;
+  border: 1px solid #667eea;
+  color: #667eea;
+  padding: 12px 25px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #f0f4ff;
+}
