@@ -10,10 +10,20 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { CareSnapshotService } from '../services/care-snapshot-service'
 import { PetCoOnboardingService } from '../services/pet-co-onboarding-service'
+import { EmergencyToolsService } from '../services/emergency-tools-service'
+import { FlyerGenerationService } from '../services/flyer-generation-service'
+import { PetRepository } from '../repositories/pet-repository'
+import { ClinicRepository } from '../repositories/clinic-repository'
+import { ImageRepository } from '../repositories/image-repository'
 import { ValidationException } from '../validation/validators'
 
 const careSnapshotService = new CareSnapshotService()
 const coOnboardingService = new PetCoOnboardingService()
+const emergencyToolsService = new EmergencyToolsService()
+const flyerService = new FlyerGenerationService()
+const petRepo = new PetRepository()
+const clinicRepo = new ClinicRepository()
+const imageRepo = new ImageRepository()
 
 /**
  * Main Lambda handler for emergency tools endpoints
@@ -189,22 +199,22 @@ async function handleReportMissing(
 
   const missingData = JSON.parse(event.body)
   
-  // Mark pet as missing
-  const pet = await coOnboardingService.markAsMissing(petId, userContext.userId)
-
-  // TODO: Generate missing pet flyer and notify nearby clinics
+  // Use EmergencyToolsService which handles:
+  // - Marking pet as missing
+  // - Generating the flyer PDF (with image embedding)
+  // - Uploading to S3 and returning a signed URL
+  // - Notifying nearby clinics
+  const result = await emergencyToolsService.reportMissing(petId, userContext.userId, {
+    searchRadiusKm: missingData.searchRadiusKm || 50,
+    lastSeenLocation: missingData.lastSeenLocation || '',
+    additionalNotes: missingData.additionalNotes,
+    contactMethod: missingData.contactMethod || 'clinic',
+  })
 
   return {
     statusCode: 200,
     headers: corsHeaders,
-    body: JSON.stringify({
-      petId,
-      isMissing: true,
-      flyerUrl: `https://app.pawprintprofile.com/flyers/${petId}`, // Placeholder
-      notifiedClinics: 0, // Placeholder
-      searchRadiusKm: missingData.searchRadiusKm || 50,
-      lastSeenLocation: missingData.lastSeenLocation || '',
-    }),
+    body: JSON.stringify(result),
   }
 }
 
@@ -294,16 +304,53 @@ async function handleDownloadFlyer(
     }
   }
 
-  // TODO: Implement flyer generation and download
+  // Verify pet exists and belongs to this owner
+  const pet = await petRepo.findById(petId)
+  if (!pet) {
+    return {
+      statusCode: 404,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: { code: 'NOT_FOUND', message: 'Pet not found' },
+      }),
+    }
+  }
+  if (pet.ownerId !== userContext.userId) {
+    return {
+      statusCode: 403,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: { code: 'FORBIDDEN', message: 'You can only download flyers for your own pets' },
+      }),
+    }
+  }
+  if (!pet.isMissing) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: { code: 'NOT_MISSING', message: 'Pet is not currently reported as missing' },
+      }),
+    }
+  }
+
+  // Gather data for flyer
+  const clinic = await clinicRepo.findById(pet.clinicId)
+  const images = await imageRepo.findByPet(petId)
+
+  // Generate flyer with clinic as default contact (privacy-safe)
+  const result = await flyerService.generateFlyer(pet, clinic, images, {
+    lastSeenLocation: 'See original report for details',
+    contactMethod: 'clinic',
+  })
 
   return {
-    statusCode: 501,
+    statusCode: 200,
     headers: corsHeaders,
     body: JSON.stringify({
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Flyer download not yet implemented',
-      },
+      petId,
+      flyerUrl: result.flyerUrl,
+      generatedAt: result.generatedAt,
     }),
   }
 }
