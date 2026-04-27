@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api, ApiException } from '../../api/client'
 
 interface ClaimResult {
@@ -16,6 +17,7 @@ interface ClaimResult {
 }
 
 export function ClaimPage() {
+  const navigate = useNavigate()
   const [form, setForm] = useState({ claimingCode: '', ownerName: '', ownerEmail: '', ownerPhone: '' })
   const [result, setResult] = useState<ClaimResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -64,9 +66,7 @@ export function ClaimPage() {
           <button type="submit" onClick={() => { setResult(null); setForm({ claimingCode: '', ownerName: '', ownerEmail: '', ownerPhone: '' }) }}>
             Claim Another
           </button>
-          <a href="/owner/dashboard">
-            <button type="button" className="btn-secondary">Go to My Pets</button>
-          </a>
+          <button type="button" className="btn-secondary" onClick={() => navigate('/owner/dashboard')}>Go to My Pets</button>
         </div>
       </div>
     )

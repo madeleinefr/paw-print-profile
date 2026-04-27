@@ -92,8 +92,18 @@ export function OwnerDashboard() {
   }
 
   // Click 3: Download flyer (link rendered after report)
-  function handleDownloadFlyer(petId: string) {
-    window.open(`/pets/${petId}/flyer`, '_blank')
+  async function handleDownloadFlyer(petId: string) {
+    // If we just reported and already have the flyerUrl, use it directly
+    if (missingResult?.flyerUrl && missingResult.petId === petId) {
+      window.open(missingResult.flyerUrl, '_blank')
+      return
+    }
+    try {
+      const data = await api.get<{ flyerUrl: string }>(`/pets/${petId}/flyer`)
+      window.open(data.flyerUrl, '_blank')
+    } catch {
+      setError('Failed to download flyer. Please try again.')
+    }
   }
 
   if (loading) return <p className="text-muted">Loading...</p>
