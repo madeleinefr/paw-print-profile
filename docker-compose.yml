@@ -63,7 +63,7 @@ services:
       - /app/node_modules
     networks:
       - vet-pet-network
-    command: npm run dev
+    command: sh -c "npm ci && npm run dev"
 
   # Frontend - React application
   # Provides user interface for veterinarians, pet owners, and public users
