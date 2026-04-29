@@ -1,10 +1,18 @@
 /**
  * Emergency Tools Lambda Handler
- * 
+ *
  * Handles HTTP requests for emergency tools:
- * - Missing pet reporting and flyer generation
- * - Care snapshot creation and access
- * - Pet recovery reporting
+ * - Missing pet reporting with 3-click flyer generation (Owner only)
+ * - Pet recovery reporting (Owner only)
+ * - Flyer download (Owner only)
+ * - Care snapshot creation (Owner only)
+ * - Care snapshot access (Public with access code)
+ *
+ * Uses AuthService for Cognito token extraction and AuthorizationService
+ * for role-based access control. Falls back to header-based auth for
+ * local development without Cognito.
+ *
+ * Requirements: [FR-08], [FR-09], [FR-10], [FR-13], [FR-15], [NFR-USA-01]
  */
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
@@ -12,6 +20,8 @@ import { CareSnapshotService } from '../services/care-snapshot-service'
 import { PetCoOnboardingService } from '../services/pet-co-onboarding-service'
 import { EmergencyToolsService } from '../services/emergency-tools-service'
 import { FlyerGenerationService } from '../services/flyer-generation-service'
+import { AuthService, AuthUser } from '../services/auth-service'
+import { AuthorizationService } from '../services/authorization-service'
 import { PetRepository } from '../repositories/pet-repository'
 import { ClinicRepository } from '../repositories/clinic-repository'
 import { ImageRepository } from '../repositories/image-repository'
@@ -21,9 +31,17 @@ const careSnapshotService = new CareSnapshotService()
 const coOnboardingService = new PetCoOnboardingService()
 const emergencyToolsService = new EmergencyToolsService()
 const flyerService = new FlyerGenerationService()
+const authService = new AuthService()
+const authzService = new AuthorizationService()
 const petRepo = new PetRepository()
 const clinicRepo = new ClinicRepository()
 const imageRepo = new ImageRepository()
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+}
 
 /**
  * Main Lambda handler for emergency tools endpoints
@@ -32,93 +50,41 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   console.log('Emergency Tools Handler - Event:', JSON.stringify(event, null, 2))
 
   try {
-    const { httpMethod, pathParameters, body, queryStringParameters } = event
+    const { httpMethod } = event
     const path = event.resource || event.path || ''
 
-    // Add CORS headers
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    }
-
-    // Handle preflight requests
     if (httpMethod === 'OPTIONS') {
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: '',
-      }
+      return { statusCode: 200, headers: CORS_HEADERS, body: '' }
     }
 
-    // Extract user context from headers (would come from API Gateway authorizer)
-    const userContext = extractUserContext(event)
+    // Extract authenticated user (null for public endpoints like care snapshot access)
+    const user = await extractUser(event)
 
-    // Route to appropriate handler
     switch (httpMethod) {
       case 'POST':
         if (path.includes('/missing')) {
-          return await handleReportMissing(event, corsHeaders, userContext)
+          return await handleReportMissing(event, user)
         } else if (path.includes('/care-snapshot')) {
-          return await handleCreateCareSnapshot(event, corsHeaders, userContext)
-        } else {
-          return {
-            statusCode: 404,
-            headers: corsHeaders,
-            body: JSON.stringify({
-              error: {
-                code: 'NOT_FOUND',
-                message: 'Endpoint not found',
-              },
-            }),
-          }
+          return await handleCreateCareSnapshot(event, user)
         }
+        return respond(404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } })
 
       case 'GET':
         if (path.includes('/care-snapshots/')) {
-          return await handleAccessCareSnapshot(event, corsHeaders)
+          return await handleAccessCareSnapshot(event) // Public — no auth required
         } else if (path.includes('/flyer')) {
-          return await handleDownloadFlyer(event, corsHeaders, userContext)
-        } else {
-          return {
-            statusCode: 404,
-            headers: corsHeaders,
-            body: JSON.stringify({
-              error: {
-                code: 'NOT_FOUND',
-                message: 'Endpoint not found',
-              },
-            }),
-          }
+          return await handleDownloadFlyer(event, user)
         }
+        return respond(404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } })
 
       case 'PUT':
         if (path.includes('/found')) {
-          return await handleMarkAsFound(event, corsHeaders, userContext)
-        } else {
-          return {
-            statusCode: 404,
-            headers: corsHeaders,
-            body: JSON.stringify({
-              error: {
-                code: 'NOT_FOUND',
-                message: 'Endpoint not found',
-              },
-            }),
-          }
+          return await handleMarkAsFound(event, user)
         }
+        return respond(404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } })
 
       default:
-        return {
-          statusCode: 405,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            error: {
-              code: 'METHOD_NOT_ALLOWED',
-              message: `Method ${httpMethod} not allowed`,
-            },
-          }),
-        }
+        return respond(405, { error: { code: 'METHOD_NOT_ALLOWED', message: `Method ${httpMethod} not allowed` } })
     }
   } catch (error) {
     console.error('Emergency Tools Handler - Error:', error)
@@ -126,396 +92,211 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 }
 
-/**
- * Extract user context from API Gateway event (from authorizer)
- */
-function extractUserContext(event: APIGatewayProxyEvent): UserContext {
-  // In a real implementation, this would come from the API Gateway authorizer
-  // For now, we'll extract from headers or use defaults for testing
-  const userType = event.headers['x-user-type'] || 'owner'
-  const userId = event.headers['x-user-id'] || 'test-user-id'
-  const clinicId = event.headers['x-clinic-id']
+// ── Auth Extraction ──────────────────────────────────────────────────────────
 
-  return {
-    userType: userType as 'vet' | 'owner',
-    userId,
-    clinicId: userType === 'vet' ? clinicId : undefined,
+async function extractUser(event: APIGatewayProxyEvent): Promise<AuthUser | null> {
+  const authHeader = event.headers?.Authorization || event.headers?.authorization
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    const user = await authService.getCurrentUser(token)
+    if (user) return user
   }
+
+  const userType = event.headers?.['x-user-type']
+  const userId = event.headers?.['x-user-id']
+  if (userType && userId) {
+    return {
+      userId,
+      email: event.headers?.['x-user-email'] || '',
+      userType: userType as 'vet' | 'owner',
+      clinicId: event.headers?.['x-clinic-id'] || undefined,
+    }
+  }
+
+  return null
 }
 
-interface UserContext {
-  userType: 'vet' | 'owner'
-  userId: string
-  clinicId?: string
+// ── Response Helpers ─────────────────────────────────────────────────────────
+
+function respond(statusCode: number, body: any): APIGatewayProxyResult {
+  return { statusCode, headers: CORS_HEADERS, body: JSON.stringify(body) }
 }
+
+function forbidden(reason: string): APIGatewayProxyResult {
+  return respond(403, { error: { code: 'FORBIDDEN', message: reason } })
+}
+
+function unauthorized(): APIGatewayProxyResult {
+  return respond(401, { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } })
+}
+
+function badRequest(code: string, message: string): APIGatewayProxyResult {
+  return respond(400, { error: { code, message } })
+}
+
+// ── Route Handlers ───────────────────────────────────────────────────────────
 
 /**
- * Report a pet as missing (pet owner only)
+ * POST /pets/{petId}/missing — Report pet as missing (Owner only)
+ * 3-click workflow: single call marks missing + generates flyer + notifies clinics
+ * Requirements: [FR-08], [FR-09], [NFR-USA-01]
  */
 async function handleReportMissing(
   event: APIGatewayProxyEvent,
-  corsHeaders: Record<string, string>,
-  userContext: UserContext
+  user: AuthUser | null
 ): Promise<APIGatewayProxyResult> {
-  if (userContext.userType !== 'owner') {
-    return {
-      statusCode: 403,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only pet owners can report pets as missing',
-        },
-      }),
-    }
-  }
+  if (!user) return unauthorized()
 
   const petId = event.pathParameters?.petId
-  if (!petId) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_PET_ID',
-          message: 'Pet ID is required',
-        },
-      }),
-    }
-  }
+  if (!petId) return badRequest('MISSING_PET_ID', 'Pet ID is required')
+  if (!event.body) return badRequest('MISSING_BODY', 'Request body is required')
 
-  if (!event.body) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_BODY',
-          message: 'Request body is required',
-        },
-      }),
-    }
-  }
+  const pet = await petRepo.findById(petId)
+  const authz = authzService.canReportMissing(user, pet)
+  if (!authz.allowed) return forbidden(authz.reason!)
 
   const missingData = JSON.parse(event.body)
-  
-  // Use EmergencyToolsService which handles:
-  // - Marking pet as missing
-  // - Generating the flyer PDF (with image embedding)
-  // - Uploading to S3 and returning a signed URL
-  // - Notifying nearby clinics
-  const result = await emergencyToolsService.reportMissing(petId, userContext.userId, {
+
+  const result = await emergencyToolsService.reportMissing(petId, user.userId, {
     searchRadiusKm: missingData.searchRadiusKm || 50,
     lastSeenLocation: missingData.lastSeenLocation || '',
     additionalNotes: missingData.additionalNotes,
     contactMethod: missingData.contactMethod || 'clinic',
   })
 
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify(result),
-  }
+  return respond(200, result)
 }
 
 /**
- * Mark a pet as found (pet owner only)
+ * PUT /pets/{petId}/found — Mark pet as found (Owner only)
+ * Requirements: [FR-10]
  */
 async function handleMarkAsFound(
   event: APIGatewayProxyEvent,
-  corsHeaders: Record<string, string>,
-  userContext: UserContext
+  user: AuthUser | null
 ): Promise<APIGatewayProxyResult> {
-  if (userContext.userType !== 'owner') {
-    return {
-      statusCode: 403,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only pet owners can mark pets as found',
-        },
-      }),
-    }
-  }
+  if (!user) return unauthorized()
 
   const petId = event.pathParameters?.petId
-  if (!petId) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_PET_ID',
-          message: 'Pet ID is required',
-        },
-      }),
-    }
-  }
+  if (!petId) return badRequest('MISSING_PET_ID', 'Pet ID is required')
 
-  // Mark pet as found
-  const pet = await coOnboardingService.markAsFound(petId, userContext.userId)
+  // Verify ownership — reuse canAccessPet since canReportMissing checks isMissing=false
+  const pet = await petRepo.findById(petId)
+  if (!pet) return respond(404, { error: { code: 'NOT_FOUND', message: 'Pet not found' } })
+  if (user.userType !== 'owner') return forbidden('Only pet owners can mark pets as found')
+  if (pet.ownerId !== user.userId) return forbidden('You can only mark your own pets as found')
+  if (!pet.isMissing) return badRequest('NOT_MISSING', 'Pet is not currently reported as missing')
 
-  // TODO: Notify previously alerted clinics
+  const result = await emergencyToolsService.markAsFound(petId, user.userId)
 
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify({
-      petId,
-      isMissing: false,
-      notifiedClinics: 0, // Placeholder
-    }),
-  }
+  return respond(200, {
+    petId,
+    isMissing: false,
+    notifiedClinics: result.notifiedClinics,
+  })
 }
 
 /**
- * Download missing pet flyer (pet owner only)
+ * GET /pets/{petId}/flyer — Download missing pet flyer (Owner only)
+ * Requirements: [FR-09], [FR-15]
  */
 async function handleDownloadFlyer(
   event: APIGatewayProxyEvent,
-  corsHeaders: Record<string, string>,
-  userContext: UserContext
+  user: AuthUser | null
 ): Promise<APIGatewayProxyResult> {
-  if (userContext.userType !== 'owner') {
-    return {
-      statusCode: 403,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only pet owners can download flyers',
-        },
-      }),
-    }
-  }
+  if (!user) return unauthorized()
 
   const petId = event.pathParameters?.petId
-  if (!petId) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_PET_ID',
-          message: 'Pet ID is required',
-        },
-      }),
-    }
-  }
+  if (!petId) return badRequest('MISSING_PET_ID', 'Pet ID is required')
 
-  // Verify pet exists and belongs to this owner
   const pet = await petRepo.findById(petId)
-  if (!pet) {
-    return {
-      statusCode: 404,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: { code: 'NOT_FOUND', message: 'Pet not found' },
-      }),
-    }
-  }
-  if (pet.ownerId !== userContext.userId) {
-    return {
-      statusCode: 403,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: { code: 'FORBIDDEN', message: 'You can only download flyers for your own pets' },
-      }),
-    }
-  }
-  if (!pet.isMissing) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: { code: 'NOT_MISSING', message: 'Pet is not currently reported as missing' },
-      }),
-    }
-  }
+  if (!pet) return respond(404, { error: { code: 'NOT_FOUND', message: 'Pet not found' } })
+  if (user.userType !== 'owner') return forbidden('Only pet owners can download flyers')
+  if (pet.ownerId !== user.userId) return forbidden('You can only download flyers for your own pets')
+  if (!pet.isMissing) return badRequest('NOT_MISSING', 'Pet is not currently reported as missing')
 
-  // Gather data for flyer
   const clinic = await clinicRepo.findById(pet.clinicId)
   const images = await imageRepo.findByPet(petId)
 
-  // Generate flyer with clinic as default contact (privacy-safe)
+  // Generate flyer with clinic as default contact (privacy-safe) [FR-15]
   const result = await flyerService.generateFlyer(pet, clinic, images, {
     lastSeenLocation: 'See original report for details',
     contactMethod: 'clinic',
   })
 
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify({
-      petId,
-      flyerUrl: result.flyerUrl,
-      generatedAt: result.generatedAt,
-    }),
-  }
+  return respond(200, {
+    petId,
+    flyerUrl: result.flyerUrl,
+    generatedAt: result.generatedAt,
+  })
 }
 
 /**
- * Create a care snapshot (pet owner only)
+ * POST /pets/{petId}/care-snapshot — Create care snapshot (Owner only)
+ * Requirements: [FR-13]
  */
 async function handleCreateCareSnapshot(
   event: APIGatewayProxyEvent,
-  corsHeaders: Record<string, string>,
-  userContext: UserContext
+  user: AuthUser | null
 ): Promise<APIGatewayProxyResult> {
-  if (userContext.userType !== 'owner') {
-    return {
-      statusCode: 403,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Only pet owners can create care snapshots',
-        },
-      }),
-    }
-  }
+  if (!user) return unauthorized()
 
   const petId = event.pathParameters?.petId
-  if (!petId) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_PET_ID',
-          message: 'Pet ID is required',
-        },
-      }),
-    }
-  }
+  if (!petId) return badRequest('MISSING_PET_ID', 'Pet ID is required')
+  if (!event.body) return badRequest('MISSING_BODY', 'Request body is required')
 
-  if (!event.body) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_BODY',
-          message: 'Request body is required',
-        },
-      }),
-    }
-  }
+  const pet = await petRepo.findById(petId)
+  const authz = authzService.canCreateCareSnapshot(user, pet)
+  if (!authz.allowed) return forbidden(authz.reason!)
 
   const snapshotData = JSON.parse(event.body)
   snapshotData.petId = petId
 
-  const snapshot = await careSnapshotService.generateCareSnapshot(snapshotData, userContext.userId)
-
-  return {
-    statusCode: 201,
-    headers: corsHeaders,
-    body: JSON.stringify(snapshot),
-  }
+  const snapshot = await careSnapshotService.generateCareSnapshot(snapshotData, user.userId)
+  return respond(201, snapshot)
 }
 
 /**
- * Access a care snapshot using access code (public access)
+ * GET /care-snapshots/{accessCode} — Access care snapshot (Public with access code)
+ * No authentication required — access controlled by time-limited code.
+ * Requirements: [FR-13], [NFR-SEC-03]
  */
 async function handleAccessCareSnapshot(
-  event: APIGatewayProxyEvent,
-  corsHeaders: Record<string, string>
+  event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> {
   const accessCode = event.pathParameters?.accessCode
-  if (!accessCode) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'MISSING_ACCESS_CODE',
-          message: 'Access code is required',
-        },
-      }),
-    }
-  }
+  if (!accessCode) return badRequest('MISSING_ACCESS_CODE', 'Access code is required')
 
   const snapshot = await careSnapshotService.accessCareSnapshot(accessCode)
-  
+
   if (!snapshot) {
-    return {
-      statusCode: 404,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'SNAPSHOT_NOT_FOUND',
-          message: 'Care snapshot not found or expired',
-        },
-      }),
-    }
+    return respond(404, { error: { code: 'SNAPSHOT_NOT_FOUND', message: 'Care snapshot not found or expired' } })
   }
 
-  // Return only the necessary information for caregivers
-  const careInfo = {
+  return respond(200, {
     petName: snapshot.petName,
     careInstructions: snapshot.careInstructions,
     feedingSchedule: snapshot.feedingSchedule,
     medications: snapshot.medications,
     emergencyContacts: snapshot.emergencyContacts,
     expiryDate: snapshot.expiryDate,
-  }
-
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify(careInfo),
-  }
+  })
 }
 
-/**
- * Handle errors and return appropriate HTTP responses
- */
-function handleError(error: any): APIGatewayProxyResult {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  }
+// ── Error Handler ────────────────────────────────────────────────────────────
 
+function handleError(error: any): APIGatewayProxyResult {
   console.error('Error details:', error)
 
   if (error instanceof ValidationException) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Validation failed',
-          details: error.validationErrors,
-        },
-      }),
-    }
+    return respond(400, {
+      error: { code: 'VALIDATION_ERROR', message: 'Validation failed', details: error.validationErrors },
+    })
   }
 
   if (error.name === 'ResourceNotFoundException') {
-    return {
-      statusCode: 404,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Resource not found',
-        },
-      }),
-    }
+    return respond(404, { error: { code: 'NOT_FOUND', message: 'Resource not found' } })
   }
 
-  // Default to 500 for unexpected errors
-  return {
-    statusCode: 500,
-    headers: corsHeaders,
-    body: JSON.stringify({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred',
-      },
-    }),
-  }
+  return respond(500, { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } })
 }

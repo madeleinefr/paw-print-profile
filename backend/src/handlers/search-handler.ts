@@ -134,13 +134,16 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
     }
 
     results = await searchService.searchByLocation(lat, lng, radiusKm, criteria)
+    // Strip owner contact info for public results [FR-15]
+    results = results.map(r => ({
+      ...r,
+      owner: undefined,
+      contactMethod: 'platform_messaging' as const,
+      messageUrl: `https://app.pawprintprofile.com/contact/${r.petId}`,
+    }))
   } else {
-    // Regular search
-    if (missingOnly === 'true') {
-      results = await searchService.searchMissingPets(criteria)
-    } else {
-      results = await searchService.search(criteria)
-    }
+    // Public search: only missing pets, owner contact hidden [FR-11][FR-15]
+    results = await searchService.searchPublic(criteria)
   }
 
   return {
@@ -186,10 +189,18 @@ async function handleGetPetDetails(event: APIGatewayProxyEvent, corsHeaders: Rec
     }
   }
 
+  // Strip owner contact info for public access [FR-15]
+  const publicDetails = {
+    ...petDetails,
+    owner: undefined,
+    contactMethod: 'platform_messaging' as const,
+    messageUrl: `https://app.pawprintprofile.com/contact/${petDetails.petId}`,
+  }
+
   return {
     statusCode: 200,
     headers: corsHeaders,
-    body: JSON.stringify(petDetails),
+    body: JSON.stringify(publicDetails),
   }
 }
 
