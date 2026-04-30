@@ -17,9 +17,9 @@
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { CareSnapshotService } from '../services/care-snapshot-service'
-import { PetCoOnboardingService } from '../services/pet-co-onboarding-service'
 import { EmergencyToolsService } from '../services/emergency-tools-service'
 import { FlyerGenerationService } from '../services/flyer-generation-service'
+import { PhotoGuidanceService } from '../services/photo-guidance-service'
 import { AuthService, AuthUser } from '../services/auth-service'
 import { AuthorizationService } from '../services/authorization-service'
 import { PetRepository } from '../repositories/pet-repository'
@@ -28,9 +28,9 @@ import { ImageRepository } from '../repositories/image-repository'
 import { ValidationException } from '../validation/validators'
 
 const careSnapshotService = new CareSnapshotService()
-const coOnboardingService = new PetCoOnboardingService()
 const emergencyToolsService = new EmergencyToolsService()
 const flyerService = new FlyerGenerationService()
+const photoGuidanceService = new PhotoGuidanceService()
 const authService = new AuthService()
 const authzService = new AuthorizationService()
 const petRepo = new PetRepository()
@@ -72,6 +72,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       case 'GET':
         if (path.includes('/care-snapshots/')) {
           return await handleAccessCareSnapshot(event) // Public — no auth required
+        } else if (path.includes('/photo-guidance')) {
+          return await handlePhotoGuidance(event, user)
         } else if (path.includes('/flyer')) {
           return await handleDownloadFlyer(event, user)
         }
@@ -281,6 +283,36 @@ async function handleAccessCareSnapshot(
     emergencyContacts: snapshot.emergencyContacts,
     expiryDate: snapshot.expiryDate,
   })
+}
+
+/**
+ * GET /pets/{petId}/photo-guidance — Get photography tips and quality feedback (Owner)
+ * Returns guidelines for taking quality pet photos for identification.
+ * Optionally accepts query params for image quality feedback.
+ * Requirements: [FR-16]
+ */
+async function handlePhotoGuidance(
+  event: APIGatewayProxyEvent,
+  user: AuthUser | null
+): Promise<APIGatewayProxyResult> {
+  if (!user) return unauthorized()
+  if (user.userType !== 'owner') return forbidden('Only pet owners can access photo guidance')
+
+  const guidelines = photoGuidanceService.getPhotoGuidelines()
+
+  // Optional: if query params provided, also return quality feedback for an image
+  const { mimeType, fileSize, width, height } = event.queryStringParameters || {}
+  let qualityFeedback
+  if (mimeType && fileSize) {
+    qualityFeedback = photoGuidanceService.getImageQualityFeedback(
+      mimeType,
+      parseInt(fileSize),
+      width ? parseInt(width) : undefined,
+      height ? parseInt(height) : undefined
+    )
+  }
+
+  return respond(200, { guidelines, qualityFeedback })
 }
 
 // ── Error Handler ────────────────────────────────────────────────────────────

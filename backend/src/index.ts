@@ -86,6 +86,7 @@ app.delete('/pets/:petId', wrap(coOnboardingHandler))
 app.post('/pets/:petId/missing', wrap(emergencyToolsHandler))
 app.put('/pets/:petId/found', wrap(emergencyToolsHandler))
 app.get('/pets/:petId/flyer', wrap(emergencyToolsHandler))
+app.get('/pets/:petId/photo-guidance', wrap(emergencyToolsHandler))
 app.post('/pets/:petId/care-snapshot', wrap(emergencyToolsHandler))
 app.get('/care-snapshots/:accessCode', wrap(emergencyToolsHandler))
 
