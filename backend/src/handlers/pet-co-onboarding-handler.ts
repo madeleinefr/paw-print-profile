@@ -20,7 +20,7 @@ import { ProfileClaimingService } from '../services/profile-claiming-service'
 import { AuthService, AuthUser } from '../services/auth-service'
 import { AuthorizationService } from '../services/authorization-service'
 import { PetRepository } from '../repositories/pet-repository'
-import { ValidationException } from '../validation/validators'
+import { ErrorHandler } from '../errors/index'
 
 const coOnboardingService = new PetCoOnboardingService()
 const claimingService = new ProfileClaimingService()
@@ -93,8 +93,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return respond(405, { error: { code: 'METHOD_NOT_ALLOWED', message: `Method ${httpMethod} not allowed` } })
     }
   } catch (error) {
-    console.error('Pet Co-Onboarding Handler - Error:', error)
-    return handleError(error)
+    return ErrorHandler.toResponse(error, CORS_HEADERS, { handler: 'PetCoOnboardingHandler' })
   }
 }
 
@@ -451,19 +450,4 @@ async function handleTransferOwnership(
 }
 
 // ── Error Handler ────────────────────────────────────────────────────────────
-
-function handleError(error: any): APIGatewayProxyResult {
-  console.error('Error details:', error)
-
-  if (error instanceof ValidationException) {
-    return respond(400, {
-      error: { code: 'VALIDATION_ERROR', message: 'Validation failed', details: error.validationErrors },
-    })
-  }
-
-  if (error.name === 'ResourceNotFoundException') {
-    return respond(404, { error: { code: 'NOT_FOUND', message: 'Resource not found' } })
-  }
-
-  return respond(500, { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } })
-}
+// Centralized via ErrorHandler.toResponse() in the catch block above.

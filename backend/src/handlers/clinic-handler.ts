@@ -10,7 +10,7 @@ import { ClinicService } from '../services/clinic-service'
 import { ProfileClaimingService } from '../services/profile-claiming-service'
 import { AuthService, AuthUser } from '../services/auth-service'
 import { AuthorizationService } from '../services/authorization-service'
-import { ValidationException } from '../validation/validators'
+import { ErrorHandler } from '../errors/index'
 
 const clinicService = new ClinicService()
 const claimingService = new ProfileClaimingService()
@@ -84,8 +84,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
     }
   } catch (error) {
-    console.error('Clinic Handler - Error:', error)
-    return handleError(error)
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    }
+    return ErrorHandler.toResponse(error, corsHeaders, { handler: 'ClinicHandler' })
   }
 }
 
@@ -366,53 +370,5 @@ async function handleUpdateCustomFields(event: APIGatewayProxyEvent, corsHeaders
 }
 
 /**
- * Handle errors and return appropriate HTTP responses
+ * Error handling is centralized via ErrorHandler.toResponse() in the catch block above.
  */
-function handleError(error: any): APIGatewayProxyResult {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  }
-
-  console.error('Error details:', error)
-
-  if (error instanceof ValidationException) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Validation failed',
-          details: error.validationErrors,
-        },
-      }),
-    }
-  }
-
-  if (error.name === 'ResourceNotFoundException') {
-    return {
-      statusCode: 404,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Resource not found',
-        },
-      }),
-    }
-  }
-
-  // Default to 500 for unexpected errors
-  return {
-    statusCode: 500,
-    headers: corsHeaders,
-    body: JSON.stringify({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred',
-      },
-    }),
-  }
-}
