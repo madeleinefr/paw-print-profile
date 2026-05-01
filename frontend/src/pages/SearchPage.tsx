@@ -147,7 +147,7 @@ export function SearchPage() {
       {/* Privacy notice [FR-15] */}
       {searched && (
         <div style={{ background: '#e8f4fd', border: '1px solid #b8daff', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', fontSize: '0.85rem', color: '#004085' }}>
-          🔒 Owner contact information is protected. Use the contact form to reach pet owners anonymously. Clinic contact details are shown for each result.
+          Owner contact information is protected. Use the contact form to reach pet owners anonymously. Clinic contact details are shown for each result.
         </div>
       )}
 
