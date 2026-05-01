@@ -25,6 +25,9 @@ export function AppLayout() {
         <Link to="/search">
           <button type="button">Search Lost Pets</button>
         </Link>
+        <Link to="/care">
+          <button type="button">Care Snapshot</button>
+        </Link>
 
         {isAuthenticated && userRole === 'vet' && (
           <>
