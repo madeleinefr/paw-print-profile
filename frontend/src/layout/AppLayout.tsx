@@ -3,6 +3,7 @@
  */
 
 import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { PawPrint } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 
 export function AppLayout() {
@@ -17,7 +18,13 @@ export function AppLayout() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🐾 Paw Print Profile</h1>
+        <h1>
+          <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '10px', position: 'relative', top: '2px' }}>
+            <PawPrint size={28} style={{ transform: 'rotate(-15deg)', marginRight: '6px' }} />
+            <PawPrint size={28} style={{ transform: 'rotate(15deg)', position: 'relative', top: '-6px' }} />
+          </span>
+          Paw Print Profile
+        </h1>
         <p>Veterinary Pet Information Management</p>
       </header>
 

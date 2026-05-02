@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api, ApiException } from '../../api/client'
+import { ImageUpload, ImageGallery } from '../../components/ImageUpload'
 
 interface VaccineRecord {
   vaccineId: string
@@ -39,7 +40,7 @@ interface PetRecord {
   }
   vaccines: VaccineRecord[]
   surgeries: SurgeryRecord[]
-  images: unknown[]
+  images: { imageId: string; url: string; tags: string[]; uploadedAt: string }[]
 }
 
 export function VetPetDetail() {
@@ -206,6 +207,13 @@ export function VetPetDetail() {
           <p className="text-muted">By: {s.veterinarianName}</p>
         </div>
       ))}
+
+      {/* Images */}
+      <h3 style={{ marginTop: '30px' }}>Photos ({record.images.length})</h3>
+      <ImageUpload petId={petId!} onUploadComplete={loadPet} showGuidance={false} />
+      <div style={{ marginTop: '15px' }}>
+        <ImageGallery images={record.images} emptyMessage="No photos uploaded yet. Add clinical or identification photos for this pet." />
+      </div>
 
       {/* Actions */}
       <div style={{ marginTop: '30px', display: 'flex', gap: '15px' }}>
