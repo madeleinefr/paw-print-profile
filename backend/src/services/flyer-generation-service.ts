@@ -117,7 +117,11 @@ export class FlyerGenerationService {
       expiresIn: SIGNED_URL_EXPIRES_IN,
     })
 
-    return { flyerUrl, s3Key, generatedAt }
+    // In local dev, the signed URL uses the Docker-internal hostname (e.g. "localstack").
+    // Replace it with localhost so the browser can reach it.
+    const publicFlyerUrl = this.toPublicUrl(flyerUrl)
+
+    return { flyerUrl: publicFlyerUrl, s3Key, generatedAt }
   }
 
   /**
@@ -320,5 +324,17 @@ export class FlyerGenerationService {
       default:
         return 'Contact via Paw Print Profile platform'
     }
+  }
+
+  /**
+   * Replace Docker-internal hostnames in S3 signed URLs with localhost
+   * so the browser can reach them during local development.
+   */
+  private toPublicUrl(url: string): string {
+    const localstackHost = process.env.LOCALSTACK_HOSTNAME
+    if (localstackHost && localstackHost !== 'localhost') {
+      return url.replace(`http://${localstackHost}:`, 'http://localhost:')
+    }
+    return url
   }
 }

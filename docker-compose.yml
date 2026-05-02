@@ -76,7 +76,7 @@ services:
       - "8080:8080"  # Frontend application port
     environment:
       # API endpoint configuration
-      - VITE_API_URL=http://backend:3000
+      - VITE_API_URL=http://localhost:3000
       - VITE_IS_LOCAL=true
     depends_on:
       - backend

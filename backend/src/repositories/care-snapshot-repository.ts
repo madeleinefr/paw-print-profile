@@ -72,7 +72,7 @@ export class CareSnapshotRepository {
       snapshotId,
       petName: snapshot.petName,
       accessCode,
-      accessUrl: `${process.env.APP_BASE_URL || (process.env.IS_LOCAL === 'true' ? 'http://localhost:5173' : 'https://app.pawprintprofile.com')}/care/${accessCode}`,
+      accessUrl: `${process.env.APP_BASE_URL || (process.env.IS_LOCAL === 'true' ? 'http://localhost:8080' : 'https://app.pawprintprofile.com')}/care/${accessCode}`,
       expiryDate,
     }
   }
