@@ -6,7 +6,9 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Lock } from 'lucide-react'
 import { api, ApiException } from '../../api/client'
+import { ImageUpload, ImageGallery } from '../../components/ImageUpload'
 
 interface VaccineRecord {
   vaccineId: string
@@ -76,12 +78,6 @@ export function OwnerPetDetail() {
   const [enrichSaving, setEnrichSaving] = useState(false)
   const [enrichSuccess, setEnrichSuccess] = useState(false)
 
-  // Photo upload state
-  const [photoTags, setPhotoTags] = useState('')
-  const [photoUploading, setPhotoUploading] = useState(false)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-
   // Care snapshot state
   const [careForm, setCareForm] = useState({ careInstructions: '', feedingSchedule: '', medications: '', expiryHours: '168' })
   const [careSubmitting, setCareSubmitting] = useState(false)
@@ -128,43 +124,6 @@ export function OwnerPetDetail() {
       setError(err instanceof ApiException ? err.error.message : 'Failed to update profile')
     } finally {
       setEnrichSaving(false)
-    }
-  }
-
-  // Photo upload with guidance [FR-16]
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setSelectedFile(file)
-    const reader = new FileReader()
-    reader.onload = (ev) => setPhotoPreview(ev.target?.result as string)
-    reader.readAsDataURL(file)
-  }
-
-  async function handlePhotoUpload(e: React.FormEvent) {
-    e.preventDefault()
-    if (!selectedFile) return
-    setPhotoUploading(true)
-    setError(null)
-    try {
-      const reader = new FileReader()
-      reader.onload = async (ev) => {
-        const base64 = (ev.target?.result as string).split(',')[1]
-        await api.post(`/pets/${petId}/images`, {
-          imageBase64: base64,
-          mimeType: selectedFile.type,
-          tags: photoTags.split(',').map((t) => t.trim()).filter(Boolean),
-        })
-        setSelectedFile(null)
-        setPhotoPreview(null)
-        setPhotoTags('')
-        loadPet()
-        setPhotoUploading(false)
-      }
-      reader.readAsDataURL(selectedFile)
-    } catch (err) {
-      setError(err instanceof ApiException ? err.error.message : 'Failed to upload photo')
-      setPhotoUploading(false)
     }
   }
 
@@ -271,7 +230,7 @@ export function OwnerPetDetail() {
 
           {/* Privacy info [FR-15] */}
           <div style={{ background: '#e8f4fd', border: '1px solid #b8daff', borderRadius: '8px', padding: '12px 16px', marginTop: '20px', fontSize: '0.85rem', color: '#004085' }}>
-            🔒 Your phone number and email are hidden from public search by default. Only the contact method you select when reporting a missing pet will be shared.
+            <Lock size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Your phone number and email are hidden from public search by default. Only the contact method you select when reporting a missing pet will be shared.
           </div>
         </div>
       )}
@@ -306,81 +265,10 @@ export function OwnerPetDetail() {
       {/* Photos Tab with guidance [FR-16] */}
       {activeTab === 'photos' && (
         <div>
-          {/* Photo upload guidance panel [FR-16] */}
-          <div style={{ background: '#f0f4ff', border: '1px solid #c3d1ff', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
-            <h4 style={{ margin: '0 0 10px', color: '#333' }}>📸 Photo Upload Guidelines</h4>
-            <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '8px' }}>Quality photos help identify your pet if they go missing. Follow these tips:</p>
-            <ul style={{ fontSize: '0.85rem', color: '#555', paddingLeft: '20px', lineHeight: '1.8' }}>
-              <li><strong>Lighting:</strong> Use natural light from a window or outdoors. Avoid harsh shadows and backlighting.</li>
-              <li><strong>Focus:</strong> Ensure your pet's face is in sharp focus. Tap on your pet to set focus.</li>
-              <li><strong>Multiple Angles:</strong> Take photos from front, side, and back views for better identification.</li>
-              <li><strong>Close-ups:</strong> Include close-up photos of distinctive features like face markings, scars, or unique patterns.</li>
-              <li><strong>Full Body:</strong> Include full-body photos showing your pet's overall size and shape.</li>
-            </ul>
-            <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '8px' }}>
-              Accepted formats: JPEG, PNG, WebP · Max size: 10 MB · Recommended: 1920×1080 or higher
-            </p>
-          </div>
+          <ImageUpload petId={petId!} onUploadComplete={loadPet} showGuidance={true} />
 
-          {/* Upload form */}
-          <form className="search-form" onSubmit={handlePhotoUpload}>
-            <div className="form-row">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileSelect}
-                aria-label="Select pet photo"
-              />
-            </div>
-
-            {/* Image quality preview [FR-16] */}
-            {photoPreview && (
-              <div style={{ margin: '15px 0', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '8px' }}>Preview:</p>
-                  <img src={photoPreview} alt="Upload preview" style={{ maxWidth: '300px', maxHeight: '300px', borderRadius: '8px', border: '1px solid #ddd' }} />
-                </div>
-                <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', color: '#555', minWidth: '200px' }}>
-                  <p style={{ fontWeight: 600, marginBottom: '6px' }}>Quality Check:</p>
-                  <p>✓ File selected</p>
-                  {selectedFile && <p>Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB {selectedFile.size > 10 * 1024 * 1024 ? '⚠️ Too large!' : '✓'}</p>}
-                  {selectedFile && <p>Format: {selectedFile.type.split('/')[1]?.toUpperCase()} ✓</p>}
-                  <p style={{ marginTop: '8px', color: '#888' }}>Compare with the guidelines above to ensure good quality.</p>
-                </div>
-              </div>
-            )}
-
-            <div className="form-row">
-              <input
-                placeholder="Tags (comma-separated, e.g., brown, white-paws, scar-left-ear)"
-                value={photoTags}
-                onChange={(e) => setPhotoTags(e.target.value)}
-                aria-label="Photo tags"
-              />
-            </div>
-            <button type="submit" disabled={photoUploading || !selectedFile}>
-              {photoUploading ? 'Uploading...' : 'Upload Photo'}
-            </button>
-          </form>
-
-          {/* Existing images gallery */}
           <h3 style={{ marginTop: '25px' }}>Photos ({images.length})</h3>
-          {images.length === 0 && <p className="text-muted">No photos uploaded yet. Add photos to help identify your pet.</p>}
-          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-            {images.map((img) => (
-              <div key={img.imageId} style={{ border: '1px solid #e9ecef', borderRadius: '8px', padding: '10px', maxWidth: '200px' }}>
-                <img src={img.url} alt={`Pet photo`} style={{ width: '100%', borderRadius: '6px' }} />
-                {img.tags.length > 0 && (
-                  <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {img.tags.map((tag) => (
-                      <span key={tag} style={{ background: '#e9ecef', padding: '1px 6px', borderRadius: '3px', fontSize: '0.75rem', color: '#555' }}>{tag}</span>
-                    ))}
-                  </div>
-                )}
-                <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '4px' }}>{new Date(img.uploadedAt).toLocaleDateString()}</p>
-              </div>
-            ))}
-          </div>
+          <ImageGallery images={images} />
         </div>
       )}
 

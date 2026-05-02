@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { PawPrint, ClipboardList, UtensilsCrossed, Pill, AlertTriangle } from 'lucide-react'
 import { api, ApiException } from '../../api/client'
 
 interface CareSnapshotData {
@@ -107,24 +108,24 @@ export function CareSnapshotAccess() {
           )}
 
           <div className="pet-card" style={{ borderLeft: '4px solid #667eea' }}>
-            <h3 style={{ marginBottom: '15px' }}>🐾 {snapshot.petName}</h3>
+            <h3 style={{ marginBottom: '15px' }}><PawPrint size={20} style={{ verticalAlign: 'middle', marginRight: '6px' }} />{snapshot.petName}</h3>
 
             {/* Care instructions */}
             <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '1rem', color: '#333', marginBottom: '6px' }}>📋 Care Instructions</h4>
+              <h4 style={{ fontSize: '1rem', color: '#333', marginBottom: '6px' }}><ClipboardList size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Care Instructions</h4>
               <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{snapshot.careInstructions}</p>
             </div>
 
             {/* Feeding schedule */}
             <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ fontSize: '1rem', color: '#333', marginBottom: '6px' }}>🍽️ Feeding Schedule</h4>
+              <h4 style={{ fontSize: '1rem', color: '#333', marginBottom: '6px' }}><UtensilsCrossed size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Feeding Schedule</h4>
               <p style={{ lineHeight: '1.6' }}>{snapshot.feedingSchedule}</p>
             </div>
 
             {/* Medications */}
             {snapshot.medications.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '1rem', color: '#333', marginBottom: '6px' }}>💊 Medications</h4>
+                <h4 style={{ fontSize: '1rem', color: '#333', marginBottom: '6px' }}><Pill size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Medications</h4>
                 <ul style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
                   {snapshot.medications.map((med, i) => (
                     <li key={i}>{med}</li>
@@ -135,7 +136,7 @@ export function CareSnapshotAccess() {
 
             {/* Emergency contacts */}
             <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', padding: '16px', marginTop: '20px' }}>
-              <h4 style={{ fontSize: '1rem', color: '#856404', marginBottom: '10px' }}>🚨 Emergency Contacts</h4>
+              <h4 style={{ fontSize: '1rem', color: '#856404', marginBottom: '10px' }}><AlertTriangle size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Emergency Contacts</h4>
               <div style={{ display: 'grid', gap: '8px', fontSize: '0.95rem' }}>
                 <p><strong>Owner Phone:</strong> {snapshot.emergencyContacts.ownerPhone}</p>
                 <p><strong>Owner Email:</strong> {snapshot.emergencyContacts.ownerEmail}</p>

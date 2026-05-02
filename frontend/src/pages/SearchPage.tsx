@@ -11,6 +11,7 @@
 
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Hospital, Phone, MapPin, Mail } from 'lucide-react'
 import { api, ApiException } from '../api/client'
 
 interface SearchResultImage {
@@ -201,16 +202,16 @@ export function SearchPage() {
 
               {/* Clinic contact [FR-15] — always shown */}
               <div style={{ marginTop: '12px', padding: '10px', background: '#f8f9fa', borderRadius: '6px', fontSize: '0.9rem' }}>
-                <p style={{ fontWeight: 600, marginBottom: '4px', color: '#333' }}>🏥 {pet.clinic.name}</p>
-                <p>📞 {pet.clinic.phone}</p>
-                <p>📍 {pet.clinic.address}{pet.clinic.city ? `, ${pet.clinic.city}` : ''}{pet.clinic.state ? `, ${pet.clinic.state}` : ''}</p>
+                <p style={{ fontWeight: 600, marginBottom: '4px', color: '#333' }}><Hospital size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />{pet.clinic.name}</p>
+                <p><Phone size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />{pet.clinic.phone}</p>
+                <p><MapPin size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />{pet.clinic.address}{pet.clinic.city ? `, ${pet.clinic.city}` : ''}{pet.clinic.state ? `, ${pet.clinic.state}` : ''}</p>
               </div>
 
               {/* Anonymous contact [FR-15] */}
               <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
                 <Link to={`/contact/${pet.petId}`}>
                   <button type="button" className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
-                    ✉ Contact Owner Anonymously
+                    <Mail size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Contact Owner Anonymously
                   </button>
                 </Link>
               </div>

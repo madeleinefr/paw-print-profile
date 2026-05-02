@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Lock, FileText } from 'lucide-react'
 import { api, ApiException } from '../../api/client'
 
 interface PetSummary {
@@ -114,7 +115,7 @@ export function OwnerDashboard() {
 
       {/* Privacy info banner [FR-15] */}
       <div style={{ background: '#e8f4fd', border: '1px solid #b8daff', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', fontSize: '0.9rem', color: '#004085' }}>
-        🔒 Your contact information is hidden from public search results by default. When reporting a missing pet, you choose which contact method to share publicly.
+        <Lock size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Your contact information is hidden from public search results by default. When reporting a missing pet, you choose which contact method to share publicly.
       </div>
 
       {error && <p style={{ color: '#c33', marginBottom: '15px' }}>{error}</p>}
@@ -178,7 +179,7 @@ export function OwnerDashboard() {
           <p style={{ color: '#155724', marginBottom: '12px' }}>Your pet has been reported as missing. Download the flyer to share.</p>
           {/* Click 3: Download flyer */}
           <button type="button" onClick={() => handleDownloadFlyer(missingResult.petId)} style={{ background: '#155724', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
-            📄 Download Missing Pet Flyer
+            <FileText size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Download Missing Pet Flyer
           </button>
           <button type="button" className="btn-secondary" onClick={() => { setMissingResult(null); setMissingPetId(null) }} style={{ marginLeft: '10px' }}>
             Dismiss
@@ -222,7 +223,7 @@ export function OwnerDashboard() {
                   onClick={() => handleDownloadFlyer(pet.petId)}
                   style={{ background: '#155724', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
                 >
-                  📄 Download Flyer
+                  <FileText size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Download Flyer
                 </button>
                 <button
                   type="button"
