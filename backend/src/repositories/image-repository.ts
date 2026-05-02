@@ -124,7 +124,21 @@ export class ImageRepository {
       Key: image.s3Key,
     })
 
-    return getSignedUrl(this.s3Client, command, { expiresIn: SIGNED_URL_EXPIRES_IN })
+    return this.toPublicUrl(
+      await getSignedUrl(this.s3Client, command, { expiresIn: SIGNED_URL_EXPIRES_IN })
+    )
+  }
+
+  /**
+   * Replace Docker-internal hostnames in S3 signed URLs with localhost
+   * so the browser can reach them during local development.
+   */
+  private toPublicUrl(url: string): string {
+    const localstackHost = process.env.LOCALSTACK_HOSTNAME
+    if (localstackHost && localstackHost !== 'localhost') {
+      return url.replace(`http://${localstackHost}:`, 'http://localhost:')
+    }
+    return url
   }
 
   /**
