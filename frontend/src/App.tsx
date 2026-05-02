@@ -4,6 +4,8 @@ import { RouteGuard } from './auth/RouteGuard'
 import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { SearchPage } from './pages/SearchPage'
+import { CareSnapshotAccess } from './pages/public/CareSnapshotAccess'
+import { ContactPetOwner } from './pages/public/ContactPetOwner'
 import { VetDashboard } from './pages/vet/VetDashboard'
 import { VetPets } from './pages/vet/VetPets'
 import { VetPetDetail } from './pages/vet/VetPetDetail'
@@ -22,6 +24,9 @@ function App() {
           <Route element={<AppLayout />}>
             {/* Public routes */}
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/care/:accessCode" element={<CareSnapshotAccess />} />
+            <Route path="/care" element={<CareSnapshotAccess />} />
+            <Route path="/contact/:petId" element={<ContactPetOwner />} />
             <Route path="/login" element={<LoginPage />} />
 
             {/* Vet-only routes */}
