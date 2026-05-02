@@ -299,11 +299,12 @@ export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: Im
 
 interface ImageGalleryProps {
   images: UploadedImage[]
+  emptyMessage?: string
 }
 
-export function ImageGallery({ images }: ImageGalleryProps) {
+export function ImageGallery({ images, emptyMessage }: ImageGalleryProps) {
   if (images.length === 0) {
-    return <p className="text-muted">No photos uploaded yet. Add photos to help identify your pet.</p>
+    return <p className="text-muted">{emptyMessage || 'No photos uploaded yet.'}</p>
   }
 
   return (

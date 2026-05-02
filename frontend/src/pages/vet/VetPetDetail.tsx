@@ -212,7 +212,7 @@ export function VetPetDetail() {
       <h3 style={{ marginTop: '30px' }}>Photos ({record.images.length})</h3>
       <ImageUpload petId={petId!} onUploadComplete={loadPet} showGuidance={false} />
       <div style={{ marginTop: '15px' }}>
-        <ImageGallery images={record.images} />
+        <ImageGallery images={record.images} emptyMessage="No photos uploaded yet. Add clinical or identification photos for this pet." />
       </div>
 
       {/* Actions */}

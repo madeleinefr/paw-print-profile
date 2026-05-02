@@ -268,7 +268,7 @@ export function OwnerPetDetail() {
           <ImageUpload petId={petId!} onUploadComplete={loadPet} showGuidance={true} />
 
           <h3 style={{ marginTop: '25px' }}>Photos ({images.length})</h3>
-          <ImageGallery images={images} />
+          <ImageGallery images={images} emptyMessage="No photos uploaded yet. Add photos to help identify your pet." />
         </div>
       )}
 
