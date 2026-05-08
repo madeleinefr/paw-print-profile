@@ -22,6 +22,7 @@ export interface DynamoDBEntity {
  * - Search by species/breed: GSI2PK = "SPECIES#{species}", GSI2SK = "BREED#{breed}#AGE#{age}"
  * - Get pets by owner: GSI3PK = "OWNER#{ownerId}", GSI3SK = "PET#{petId}" (only when claimed)
  * - Find by claiming code: GSI4PK = "CLAIM#{claimingCode}", GSI4SK = "PET#{petId}" (only when pending)
+ * - Get pets by clinic: GSI6PK = "CLINIC#{clinicId}", GSI6SK = "PET#{petId}" (always present)
  */
 export interface Pet extends DynamoDBEntity {
   PK: string                    // "PET#{petId}"
@@ -65,6 +66,10 @@ export interface Pet extends DynamoDBEntity {
   // GSI4 attributes for claiming code lookup (only when pending)
   GSI4PK?: string              // "CLAIM#{claimingCode}" (only when pending)
   GSI4SK?: string              // "PET#{petId}" (only when pending)
+  
+  // GSI6 attributes for clinic-pet lookup (always present)
+  GSI6PK?: string              // "CLINIC#{clinicId}"
+  GSI6SK?: string              // "PET#{petId}"
 }
 
 /**

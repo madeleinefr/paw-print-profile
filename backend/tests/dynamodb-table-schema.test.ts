@@ -80,6 +80,8 @@ describe('DynamoDB Table Schema', () => {
     expect(attributeNames).toContain('GSI4SK')
     expect(attributeNames).toContain('GSI5PK')
     expect(attributeNames).toContain('GSI5SK')
+    expect(attributeNames).toContain('GSI6PK')
+    expect(attributeNames).toContain('GSI6SK')
     
     // All attributes should be strings
     description.AttributeDefinitions.forEach((attr: any) => {
@@ -140,10 +142,10 @@ describe('DynamoDB Table Schema', () => {
     expect(gsi3.Projection.ProjectionType).toBe('ALL')
   })
 
-  it('should have exactly 5 Global Secondary Indexes', async () => {
+  it('should have exactly 6 Global Secondary Indexes', async () => {
     const description = await initializer.describeTable(testTableName)
     
-    expect(description.GlobalSecondaryIndexes).toHaveLength(5)
+    expect(description.GlobalSecondaryIndexes).toHaveLength(6)
     
     const indexNames = description.GlobalSecondaryIndexes.map((gsi: any) => gsi.IndexName)
     expect(indexNames).toContain('GSI1')
@@ -151,6 +153,7 @@ describe('DynamoDB Table Schema', () => {
     expect(indexNames).toContain('GSI3')
     expect(indexNames).toContain('GSI4')
     expect(indexNames).toContain('GSI5')
+    expect(indexNames).toContain('GSI6')
   })
 
   it('should have GSI4 configured correctly for claiming code lookup', async () => {
@@ -183,6 +186,21 @@ describe('DynamoDB Table Schema', () => {
     expect(gsi5.Projection.ProjectionType).toBe('ALL')
   })
 
+  it('should have GSI6 configured correctly for clinic-pet lookup', async () => {
+    const description = await initializer.describeTable(testTableName)
+    
+    const gsi6 = description.GlobalSecondaryIndexes.find((gsi: any) => gsi.IndexName === 'GSI6')
+    expect(gsi6).toBeDefined()
+    
+    expect(gsi6.KeySchema).toHaveLength(2)
+    expect(gsi6.KeySchema[0].AttributeName).toBe('GSI6PK')
+    expect(gsi6.KeySchema[0].KeyType).toBe('HASH')
+    expect(gsi6.KeySchema[1].AttributeName).toBe('GSI6SK')
+    expect(gsi6.KeySchema[1].KeyType).toBe('RANGE')
+    
+    expect(gsi6.Projection.ProjectionType).toBe('ALL')
+  })
+
   it('should use PAY_PER_REQUEST billing mode by default', async () => {
     const description = await initializer.describeTable(testTableName)
     
@@ -191,7 +209,6 @@ describe('DynamoDB Table Schema', () => {
   })
 
   it('should handle table already exists error gracefully', async () => {
-    // Table already exists from previous test
     await expect(
       initializer.createTable({ tableName: testTableName })
     ).resolves.not.toThrow()

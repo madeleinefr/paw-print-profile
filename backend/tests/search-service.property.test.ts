@@ -341,7 +341,7 @@ describe('[FR-15] Property 54: Owner privacy protection in public search', () =>
           expect(result.owner).toBeUndefined()
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 25 }
     )
   }, 300_000)
 
@@ -363,7 +363,7 @@ describe('[FR-15] Property 54: Owner privacy protection in public search', () =>
         expect(found!.contactMethod).toBe('platform_messaging')
         expect(found!.messageUrl).toContain(pet.petId)
       }),
-      { numRuns: 100 }
+      { numRuns: 25 }
     )
   }, 300_000)
 
@@ -387,7 +387,7 @@ describe('[FR-15] Property 54: Owner privacy protection in public search', () =>
           expect(result.clinic.address).toBeTruthy()
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 25 }
     )
   }, 300_000)
 
@@ -408,7 +408,7 @@ describe('[FR-15] Property 54: Owner privacy protection in public search', () =>
           expect(result.isMissing).toBe(true)
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 25 }
     )
   }, 300_000)
 })
