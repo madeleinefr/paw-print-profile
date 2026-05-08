@@ -59,6 +59,8 @@ export class DynamoDBTableInitializer {
         { AttributeName: 'GSI4SK', AttributeType: 'S' },
         { AttributeName: 'GSI5PK', AttributeType: 'S' },
         { AttributeName: 'GSI5SK', AttributeType: 'S' },
+        { AttributeName: 'GSI6PK', AttributeType: 'S' },
+        { AttributeName: 'GSI6SK', AttributeType: 'S' },
       ],
 
       // Primary key schema
@@ -135,6 +137,21 @@ export class DynamoDBTableInitializer {
           KeySchema: [
             { AttributeName: 'GSI5PK', KeyType: 'HASH' },
             { AttributeName: 'GSI5SK', KeyType: 'RANGE' },
+          ],
+          Projection: { ProjectionType: 'ALL' },
+          ...(billingMode === 'PROVISIONED' && {
+            ProvisionedThroughput: {
+              ReadCapacityUnits: config?.readCapacity || 5,
+              WriteCapacityUnits: config?.writeCapacity || 5,
+            },
+          }),
+        },
+        {
+          // GSI6: Clinic-pet lookup (get all pets for a clinic)
+          IndexName: 'GSI6',
+          KeySchema: [
+            { AttributeName: 'GSI6PK', KeyType: 'HASH' },
+            { AttributeName: 'GSI6SK', KeyType: 'RANGE' },
           ],
           Projection: { ProjectionType: 'ALL' },
           ...(billingMode === 'PROVISIONED' && {

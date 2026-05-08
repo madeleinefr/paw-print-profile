@@ -86,6 +86,10 @@ export class PetRepository {
       // GSI4 attributes for claiming code lookup (only when pending)
       GSI4PK: `CLAIM#${claimingCode}`,
       GSI4SK: `PET#${petId}`,
+      
+      // GSI6 attributes for clinic-pet lookup (always present)
+      GSI6PK: `CLINIC#${input.clinicId}`,
+      GSI6SK: `PET#${petId}`,
     }
 
     const command = new PutCommand({
@@ -245,13 +249,14 @@ export class PetRepository {
    * Find pending claims for a clinic
    */
   async findPendingClaims(clinicId: string): Promise<Pet[]> {
-    const command = new ScanCommand({
+    const command = new QueryCommand({
       TableName: this.tableName,
-      FilterExpression: 'clinicId = :clinicId AND profileStatus = :status AND SK = :sk',
+      IndexName: 'GSI6',
+      KeyConditionExpression: 'GSI6PK = :clinicPk',
+      FilterExpression: 'profileStatus = :status',
       ExpressionAttributeValues: {
-        ':clinicId': clinicId,
+        ':clinicPk': `CLINIC#${clinicId}`,
         ':status': 'Pending Claim' as ProfileStatus,
-        ':sk': 'METADATA',
       },
     })
 
@@ -367,12 +372,12 @@ export class PetRepository {
    * Find pets by clinic with pagination
    */
   async findByClinic(clinicId: string, pagination: PaginationParams): Promise<PaginatedResponse<Pet>> {
-    const command = new ScanCommand({
+    const command = new QueryCommand({
       TableName: this.tableName,
-      FilterExpression: 'clinicId = :clinicId AND SK = :sk',
+      IndexName: 'GSI6',
+      KeyConditionExpression: 'GSI6PK = :clinicPk',
       ExpressionAttributeValues: {
-        ':clinicId': clinicId,
-        ':sk': 'METADATA',
+        ':clinicPk': `CLINIC#${clinicId}`,
       },
       Limit: pagination.limit,
       ExclusiveStartKey: pagination.lastEvaluatedKey,
