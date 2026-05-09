@@ -11,6 +11,7 @@
 import { PetRepository } from '../repositories/pet-repository'
 import { ClinicRepository } from '../repositories/clinic-repository'
 import { ImageRepository } from '../repositories/image-repository'
+import { ProfileClaimingService } from './profile-claiming-service'
 import {
   Pet,
   PetImage,
@@ -43,11 +44,13 @@ export class PetCoOnboardingService {
   private petRepo: PetRepository
   private clinicRepo: ClinicRepository
   private imageRepo: ImageRepository
+  private claimingService: ProfileClaimingService
 
   constructor(tableName?: string) {
     this.petRepo = new PetRepository(tableName)
     this.clinicRepo = new ClinicRepository(tableName)
     this.imageRepo = new ImageRepository(tableName)
+    this.claimingService = new ProfileClaimingService(tableName)
   }
 
   /**
@@ -92,23 +95,17 @@ export class PetCoOnboardingService {
   }
 
   /**
-   * Claim a pet profile (pet owner)
+   * Claim a pet profile (pet owner).
+   * Delegates to ProfileClaimingService.transferOwnership() which handles
+   * eligibility validation and atomic ownership transfer.
    */
   async claimProfile(input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
     // Validate input data
     const validationErrors = validateClaimProfileData(input)
     throwIfInvalid(validationErrors)
 
-    // Validate claiming code and get pet
-    const validation = await this.validateClaimingCode(input.claimingCode)
-    if (!validation.valid || !validation.pet) {
-      throw new ValidationException([
-        { field: 'claimingCode', message: validation.error || 'Invalid claiming code' }
-      ])
-    }
-
-    // Claim the profile
-    return await this.petRepo.claimProfile(validation.pet.petId, input, ownerId)
+    // Delegate to ProfileClaimingService for the actual ownership transfer
+    return await this.claimingService.transferOwnership(input, ownerId)
   }
 
   /**
