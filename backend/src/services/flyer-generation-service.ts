@@ -26,7 +26,9 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
-const FLYER_BUCKET = process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+function getFlyerBucket(): string {
+  return process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+}
 const SIGNED_URL_EXPIRES_IN = 3600 // 1 hour
 
 /**
@@ -97,7 +99,7 @@ export class FlyerGenerationService {
 
     await this.s3Client.send(
       new PutObjectCommand({
-        Bucket: FLYER_BUCKET,
+        Bucket: getFlyerBucket(),
         Key: s3Key,
         Body: pdfBuffer,
         ContentType: 'application/pdf',
@@ -110,7 +112,7 @@ export class FlyerGenerationService {
 
     // Generate a signed URL for download
     const command = new GetObjectCommand({
-      Bucket: FLYER_BUCKET,
+      Bucket: getFlyerBucket(),
       Key: s3Key,
     })
     const flyerUrl = await getSignedUrl(this.s3Client, command, {
