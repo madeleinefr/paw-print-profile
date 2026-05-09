@@ -19,6 +19,8 @@ import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { DynamoDBTableInitializer } from '../src/infrastructure/init-dynamodb'
 import { ClinicRepository } from '../src/repositories/clinic-repository'
 import { PetRepository } from '../src/repositories/pet-repository'
+import { AWSClientFactory } from '../src/infrastructure/aws-client-factory'
+import { CreateBucketCommand, DeleteBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -89,6 +91,16 @@ beforeAll(async () => {
 
   initializer = new DynamoDBTableInitializer(TABLE_NAME)
   await initializer.initializeForTesting({ tableName: TABLE_NAME })
+
+  // Ensure the S3 bucket exists for flyer generation tests
+  const factory = new AWSClientFactory()
+  const s3Client = factory.createS3Client()
+  const bucketName = process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images-test'
+  try {
+    await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }))
+  } catch {
+    await s3Client.send(new CreateBucketCommand({ Bucket: bucketName }))
+  }
 
   // Repositories for direct data setup
   clinicRepo = new ClinicRepository(TABLE_NAME)
