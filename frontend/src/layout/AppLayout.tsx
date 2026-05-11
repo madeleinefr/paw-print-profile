@@ -7,11 +7,11 @@ import { PawPrint } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 
 export function AppLayout() {
-  const { isAuthenticated, userRole, logout } = useAuth()
+  const { isAuthenticated, userRole, email, logout } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/')
   }
 
@@ -62,9 +62,12 @@ export function AppLayout() {
         )}
 
         {isAuthenticated ? (
-          <button type="button" onClick={handleLogout} style={{ marginLeft: 'auto' }}>
-            Logout
-          </button>
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {email && <span className="text-muted" style={{ fontSize: '0.85em' }}>{email}</span>}
+            <button type="button" onClick={handleLogout}>
+              Logout
+            </button>
+          </span>
         ) : (
           <Link to="/login" style={{ marginLeft: 'auto' }}>
             <button type="button">Login</button>

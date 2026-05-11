@@ -97,9 +97,6 @@ export class AuthService {
     if (!userType || !['vet', 'owner'].includes(userType)) {
       throw new AuthError('User type must be vet or owner', 'INVALID_INPUT')
     }
-    if (userType === 'vet' && !clinicId) {
-      throw new AuthError('Clinic ID is required for veterinarians', 'INVALID_INPUT')
-    }
 
     const userAttributes = [
       { Name: 'email', Value: email },
