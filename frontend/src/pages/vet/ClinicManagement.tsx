@@ -86,9 +86,21 @@ export function ClinicManagement() {
       if (mode === 'create') {
         const created = await api.post<Clinic>('/clinics', payload)
         setClinic(created)
-        setMode('view')
+        // After creating a clinic, associate it with the current user's account
+        // so future API calls include the clinicId for authorization
+        try {
+          await api.post('/auth/associate-clinic', { clinicId: created.clinicId })
+          // Force re-login to refresh the token with the new clinicId
+          // For now, store it in localStorage so the app picks it up
+          localStorage.setItem('pawprint_clinic_id', created.clinicId)
+          // Reload to refresh auth state with new clinicId
+          window.location.reload()
+        } catch {
+          // Non-critical — user can still view the clinic
+          setMode('view')
+        }
       } else {
-        const updated = await api.put<Clinic>(`/clinics/${clinicId}`, payload)
+        const updated = await api.put<Clinic>(`/clinics/${clinic?.clinicId || clinicId}`, payload)
         setClinic(updated)
         setMode('view')
       }

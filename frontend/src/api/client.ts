@@ -2,6 +2,11 @@
  * API Client - Environment-aware HTTP client for Paw Print Profile backend
  *
  * Wraps fetch with base URL, auth headers, JSON parsing, and error handling.
+ * Uses JWT tokens from the auth module for authenticated requests.
+ * Includes role headers (x-user-type, x-user-id, x-clinic-id) for backend
+ * authorization until full Cognito token validation is deployed.
+ *
+ * Requirements: [NFR-SEC-01], [NFR-SEC-02]
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -49,7 +54,7 @@ export function getAuth() {
 function buildHeaders(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`
-  // Temporary header-based auth until Cognito is integrated
+  // Role headers for backend authorization (used alongside JWT)
   if (currentUserType) headers['x-user-type'] = currentUserType
   if (currentUserId) headers['x-user-id'] = currentUserId
   if (currentClinicId) headers['x-clinic-id'] = currentClinicId

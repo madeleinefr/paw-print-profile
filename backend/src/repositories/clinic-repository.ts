@@ -121,7 +121,7 @@ export class ClinicRepository {
     }
 
     if (updates.name !== undefined) {
-      updateExpressions.push('name = :name')
+      updateExpressions.push('#n = :name')
       expressionAttributeValues[':name'] = updates.name
     }
 
@@ -136,7 +136,7 @@ export class ClinicRepository {
     }
 
     if (updates.state !== undefined) {
-      updateExpressions.push('state = :state')
+      updateExpressions.push('#s = :state')
       expressionAttributeValues[':state'] = updates.state
     }
 
@@ -170,6 +170,15 @@ export class ClinicRepository {
       expressionAttributeValues[':customFields'] = updates.customFields
     }
 
+    // Build ExpressionAttributeNames for reserved keywords
+    const expressionAttributeNames: Record<string, string> = {}
+    if (updates.name !== undefined) {
+      expressionAttributeNames['#n'] = 'name'
+    }
+    if (updates.state !== undefined) {
+      expressionAttributeNames['#s'] = 'state'
+    }
+
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: {
@@ -178,6 +187,7 @@ export class ClinicRepository {
       },
       UpdateExpression: `SET ${updateExpressions.join(', ')}`,
       ExpressionAttributeValues: expressionAttributeValues,
+      ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
       ReturnValues: 'ALL_NEW',
     })
 

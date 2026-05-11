@@ -12,6 +12,8 @@ import { handler as coOnboardingHandler } from './handlers/pet-co-onboarding-han
 import { handler as clinicHandler } from './handlers/clinic-handler'
 import { handler as searchHandler } from './handlers/search-handler'
 import { handler as emergencyToolsHandler } from './handlers/emergency-tools-handler'
+import { AuthService, AuthError } from './services/auth-service'
+import { LocalAuthService } from './services/local-auth-service'
 
 import { AWSClientFactory } from './infrastructure/aws-client-factory'
 import { CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
@@ -63,6 +65,121 @@ app.get('/health', (_req, res) => {
     environment: process.env.IS_LOCAL === 'true' ? 'Local (LocalStack)' : 'Cloud (AWS)',
     timestamp: new Date().toISOString(),
   })
+})
+
+// ── Auth routes ───────────────────────────────────────────────────────────────
+
+// Use LocalAuthService (DynamoDB-backed) in local dev where Cognito is unavailable.
+// In production, use the real Cognito-based AuthService.
+const isLocal = process.env.IS_LOCAL === 'true'
+const authService = isLocal ? new LocalAuthService() : new AuthService()
+
+if (isLocal) {
+  console.log('🔑 Using LocalAuthService (DynamoDB-backed) — Cognito not available on LocalStack free tier')
+}
+
+app.post('/auth/signup', async (req: Request, res: Response) => {
+  try {
+    const { email, password, userType, clinicId } = req.body
+    const user = await authService.signUp({ email, password, userType, clinicId })
+    res.status(201).json(user)
+  } catch (err: any) {
+    if (err instanceof AuthError) {
+      const status = err.code === 'INVALID_INPUT' ? 400 : 500
+      res.status(status).json({ error: { code: err.code, message: err.message } })
+    } else {
+      res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Sign-up failed' } })
+    }
+  }
+})
+
+app.post('/auth/signin', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body
+    const tokens = await authService.signIn(email, password)
+    res.json(tokens)
+  } catch (err: any) {
+    if (err instanceof AuthError) {
+      const status = err.code === 'INVALID_CREDENTIALS' || err.code === 'USER_NOT_FOUND' ? 401 : 400
+      res.status(status).json({ error: { code: err.code, message: err.message } })
+    } else {
+      res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Sign-in failed' } })
+    }
+  }
+})
+
+app.post('/auth/refresh', async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body
+    const tokens = await authService.refreshToken(refreshToken)
+    res.json(tokens)
+  } catch (err: any) {
+    if (err instanceof AuthError) {
+      res.status(401).json({ error: { code: err.code, message: err.message } })
+    } else {
+      res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Token refresh failed' } })
+    }
+  }
+})
+
+app.get('/auth/me', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (!token) {
+      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
+      return
+    }
+    const user = await authService.getCurrentUser(token)
+    if (!user) {
+      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
+      return
+    }
+    res.json(user)
+  } catch (err: any) {
+    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to get user' } })
+  }
+})
+
+app.post('/auth/signout', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (token) {
+      await authService.signOut(token)
+    }
+    res.status(204).send()
+  } catch {
+    res.status(204).send()
+  }
+})
+
+app.post('/auth/associate-clinic', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (!token) {
+      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
+      return
+    }
+    const user = await authService.getCurrentUser(token)
+    if (!user) {
+      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
+      return
+    }
+    const { clinicId } = req.body
+    if (!clinicId) {
+      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'clinicId is required' } })
+      return
+    }
+    // Update the user's clinicId in the local auth store
+    if (isLocal && 'associateClinic' in authService) {
+      await (authService as any).associateClinic(user.userId, clinicId)
+    }
+    res.json({ success: true, clinicId })
+  } catch (err: any) {
+    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to associate clinic' } })
+  }
 })
 
 // ── Pet co-onboarding routes ──────────────────────────────────────────────────

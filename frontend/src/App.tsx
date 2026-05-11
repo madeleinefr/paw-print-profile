@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { RouteGuard } from './auth/RouteGuard'
 import { AppLayout } from './layout/AppLayout'
 import { LoginPage } from './pages/LoginPage'
+import { SignUpPage } from './pages/SignUpPage'
 import { SearchPage } from './pages/SearchPage'
 import { CareSnapshotAccess } from './pages/public/CareSnapshotAccess'
 import { ContactPetOwner } from './pages/public/ContactPetOwner'
@@ -28,6 +29,7 @@ function App() {
             <Route path="/care" element={<CareSnapshotAccess />} />
             <Route path="/contact/:petId" element={<ContactPetOwner />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
 
             {/* Vet-only routes */}
             <Route element={<RouteGuard allowedRole="vet" />}>
