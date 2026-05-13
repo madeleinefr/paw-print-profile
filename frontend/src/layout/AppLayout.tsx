@@ -58,6 +58,9 @@ export function AppLayout() {
             <Link to="/owner/claim">
               <button type="button">Claim Profile</button>
             </Link>
+            <Link to="/owner/settings">
+              <button type="button">Account Settings</button>
+            </Link>
           </>
         )}
 

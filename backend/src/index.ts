@@ -182,6 +182,57 @@ app.post('/auth/associate-clinic', async (req: Request, res: Response) => {
   }
 })
 
+// ── Account profile routes ────────────────────────────────────────────────────
+
+app.get('/account/profile', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (!token) {
+      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
+      return
+    }
+    const user = await authService.getCurrentUser(token)
+    if (!user) {
+      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
+      return
+    }
+    if ('getProfile' in authService) {
+      const profile = await (authService as any).getProfile(user.userId)
+      res.json(profile || { ownerName: '', ownerEmail: user.email, ownerPhone: '', ownerStreet: '', ownerHouseNumber: '', ownerZipCode: '', ownerCity: '' })
+    } else {
+      res.json({ ownerName: '', ownerEmail: user.email, ownerPhone: '', ownerStreet: '', ownerHouseNumber: '', ownerZipCode: '', ownerCity: '' })
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to get profile' } })
+  }
+})
+
+app.put('/account/profile', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    if (!token) {
+      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
+      return
+    }
+    const user = await authService.getCurrentUser(token)
+    if (!user) {
+      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
+      return
+    }
+    const { ownerName, ownerPhone, ownerStreet, ownerHouseNumber, ownerZipCode, ownerCity } = req.body
+    if ('updateProfile' in authService) {
+      await (authService as any).updateProfile(user.userId, {
+        ownerName, ownerPhone, ownerStreet, ownerHouseNumber, ownerZipCode, ownerCity,
+      })
+    }
+    res.json({ success: true })
+  } catch (err: any) {
+    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to update profile' } })
+  }
+})
+
 // ── Pet co-onboarding routes ──────────────────────────────────────────────────
 
 app.post('/claiming-codes/validate', wrap(coOnboardingHandler))

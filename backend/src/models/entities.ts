@@ -45,6 +45,10 @@ export interface Pet extends DynamoDBEntity {
   ownerName?: string
   ownerEmail?: string
   ownerPhone?: string
+  ownerStreet?: string
+  ownerHouseNumber?: string
+  ownerZipCode?: string
+  ownerCity?: string
   
   // Medical verification metadata
   verifyingVetId: string
@@ -244,6 +248,10 @@ export interface EnrichProfileInput {
   ownerName?: string
   ownerEmail?: string
   ownerPhone?: string
+  ownerStreet?: string
+  ownerHouseNumber?: string
+  ownerZipCode?: string
+  ownerCity?: string
   customFields?: Record<string, any>
 }
 
@@ -267,6 +275,10 @@ export interface UpdatePetInput {
   ownerName?: string
   ownerEmail?: string
   ownerPhone?: string
+  ownerStreet?: string
+  ownerHouseNumber?: string
+  ownerZipCode?: string
+  ownerCity?: string
   customFields?: Record<string, any>
 }
 

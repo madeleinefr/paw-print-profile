@@ -3,9 +3,10 @@
  * Validates: [FR-04]
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiException } from '../../api/client'
+import { useAuth } from '../../auth/AuthContext'
 
 interface ClaimResult {
   petId: string
@@ -18,10 +19,34 @@ interface ClaimResult {
 
 export function ClaimPage() {
   const navigate = useNavigate()
+  const { email } = useAuth()
   const [form, setForm] = useState({ claimingCode: '', ownerName: '', ownerEmail: '', ownerPhone: '' })
   const [result, setResult] = useState<ClaimResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Pre-populate from user profile (Account Settings)
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const profile = await api.get<{
+          ownerName: string; ownerEmail: string; ownerPhone: string
+        }>('/account/profile')
+        setForm((prev) => ({
+          ...prev,
+          ownerName: profile.ownerName || prev.ownerName,
+          ownerEmail: profile.ownerEmail || email || prev.ownerEmail,
+          ownerPhone: profile.ownerPhone || prev.ownerPhone,
+        }))
+      } catch {
+        // If profile fetch fails, fall back to auth email
+        if (email) {
+          setForm((prev) => ({ ...prev, ownerEmail: email }))
+        }
+      }
+    }
+    loadProfile()
+  }, [email])
 
   function updateField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -38,6 +63,15 @@ export function ClaimPage() {
         ownerEmail: form.ownerEmail.trim(),
         ownerPhone: form.ownerPhone.trim(),
       })
+      // Update user profile with the contact details used during claiming
+      try {
+        await api.put('/account/profile', {
+          ownerName: form.ownerName.trim(),
+          ownerPhone: form.ownerPhone.trim(),
+        })
+      } catch {
+        // Non-critical — profile update failure shouldn't block claiming
+      }
       setResult(data)
     } catch (err) {
       if (err instanceof ApiException) {
@@ -104,9 +138,9 @@ export function ClaimPage() {
             type="email"
             placeholder="Email Address"
             value={form.ownerEmail}
-            onChange={(e) => updateField('ownerEmail', e.target.value)}
-            required
+            disabled
             aria-label="Email Address"
+            style={{ opacity: 0.7, cursor: 'not-allowed' }}
           />
           <input
             type="tel"
@@ -117,6 +151,7 @@ export function ClaimPage() {
             aria-label="Phone Number"
           />
         </div>
+        <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '-8px' }}>Email is your login address and cannot be changed here.</p>
         <button type="submit" disabled={submitting}>
           {submitting ? 'Claiming...' : 'Claim Profile'}
         </button>

@@ -21,6 +21,7 @@
 import { DynamoDBTableInitializer } from './init-dynamodb'
 import { ClinicRepository } from '../repositories/clinic-repository'
 import { PetRepository } from '../repositories/pet-repository'
+import { LocalAuthService } from '../services/local-auth-service'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE || 'VetPetRegistry'
 
@@ -39,6 +40,54 @@ async function seed() {
 
   const clinicRepo = new ClinicRepository(TABLE_NAME)
   const petRepo = new PetRepository(TABLE_NAME)
+  const authService = new LocalAuthService()
+
+  // ── 0. Create test user accounts ────────────────────────────────────────
+  console.log('\n🔑 Creating test user accounts...')
+
+  const VET_EMAIL = 'dr.weber@tierarzt-pfoetchen.de'
+  const VET_PASSWORD = 'Test1234!'
+  const OWNER_EMAIL = 'anna.mueller@beispiel.de'
+  const OWNER_PASSWORD = 'Test1234!'
+
+  let vetUserId: string
+  let ownerUserId: string
+
+  try {
+    const vetUser = await authService.signUp({
+      email: VET_EMAIL,
+      password: VET_PASSWORD,
+      userType: 'vet',
+    })
+    vetUserId = vetUser.userId
+    console.log(`  ✓ Vet account: ${VET_EMAIL} / ${VET_PASSWORD} (ID: ${vetUserId})`)
+  } catch (err: any) {
+    if (err.message?.includes('already exists')) {
+      console.log(`  ⚠ Vet account already exists: ${VET_EMAIL}`)
+      const existing = await authService.getUserByEmail(VET_EMAIL)
+      vetUserId = existing!.userId
+    } else {
+      throw err
+    }
+  }
+
+  try {
+    const ownerUser = await authService.signUp({
+      email: OWNER_EMAIL,
+      password: OWNER_PASSWORD,
+      userType: 'owner',
+    })
+    ownerUserId = ownerUser.userId
+    console.log(`  ✓ Owner account: ${OWNER_EMAIL} / ${OWNER_PASSWORD} (ID: ${ownerUserId})`)
+  } catch (err: any) {
+    if (err.message?.includes('already exists')) {
+      console.log(`  ⚠ Owner account already exists: ${OWNER_EMAIL}`)
+      const existing = await authService.getUserByEmail(OWNER_EMAIL)
+      ownerUserId = existing!.userId
+    } else {
+      throw err
+    }
+  }
 
   // ── 1. Create clinic ─────────────────────────────────────────────────────
   console.log('\n Creating clinic...')
@@ -56,8 +105,12 @@ async function seed() {
   })
   console.log(`  ✓ Clinic: ${clinic.name} (ID: ${clinic.clinicId})`)
 
-  const VET_ID = 'vet-1'
-  const OWNER_ID = 'owner-1'
+  // Associate clinic with vet account
+  await authService.associateClinic(vetUserId, clinic.clinicId)
+  console.log(`  ✓ Vet account associated with clinic`)
+
+  const VET_ID = vetUserId
+  const OWNER_ID = ownerUserId
 
   // ── 2. Create pets ───────────────────────────────────────────────────────
   console.log('\n Creating pet profiles...')
@@ -77,6 +130,13 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  // Add address for claimed pet
+  await petRepo.update(buddy.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   console.log(`  ✓ Balu (Golden Retriever, 3y) — Active, owned by ${OWNER_ID}`)
 
   // Pet 2: Claimed + Missing (owned by owner-1) — shows up in public search
@@ -94,6 +154,12 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  await petRepo.update(luna.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   await petRepo.setMissingStatus(luna.petId, true)
   console.log(`  ✓ Luna (Siamese, 2y) — MISSING, owned by ${OWNER_ID}`)
 
@@ -112,6 +178,12 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  await petRepo.update(max.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   await petRepo.setMissingStatus(max.petId, true)
   console.log(`  ✓ Rex (German Shepherd, 5y) — MISSING, owned by ${OWNER_ID}`)
 
@@ -152,6 +224,12 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  await petRepo.update(bella.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   console.log(`  ✓ Bella (Labrador, 7y) — Active, owned by ${OWNER_ID}`)
 
   // Pet 7: Claimed + Active (owned by owner-1) — Cat
@@ -169,6 +247,12 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  await petRepo.update(simba.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   console.log(`  ✓ Simba (British Shorthair, 6y) — Active, owned by ${OWNER_ID}`)
 
   // Pet 8: Claimed + Missing (owned by owner-1) — another missing Cat
@@ -186,6 +270,12 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  await petRepo.update(nala.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   await petRepo.setMissingStatus(nala.petId, true)
   console.log(`  ✓ Nala (Persian, 3y) — MISSING, owned by ${OWNER_ID}`)
 
@@ -215,6 +305,12 @@ async function seed() {
     ownerEmail: 'anna.mueller@beispiel.de',
     ownerPhone: '+49-176-12345678',
   }, OWNER_ID)
+  await petRepo.update(lotte.petId, {
+    ownerStreet: 'Leopoldstraße',
+    ownerHouseNumber: '27',
+    ownerZipCode: '80802',
+    ownerCity: 'München',
+  })
   console.log(`  ✓ Lotte (Dachshund, 9y) — Active, owned by ${OWNER_ID}`)
 
   // ── 3. Add medical records ───────────────────────────────────────────────
@@ -304,9 +400,9 @@ async function seed() {
   // ── Summary ──────────────────────────────────────────────────────────────
   console.log('\n' + '═'.repeat(60))
   console.log('✅ Seed data created successfully!\n')
-  console.log('Test Users:')
-  console.log(`  Tierarzt: Log in with User ID "vet-1", Clinic ID "${clinic.clinicId}"`)
-  console.log(`  Besitzer: Log in with User ID "owner-1"\n`)
+  console.log('Test Accounts (Login Credentials):')
+  console.log(`  Tierarzt: ${VET_EMAIL} / ${VET_PASSWORD}`)
+  console.log(`  Besitzer: ${OWNER_EMAIL} / ${OWNER_PASSWORD}\n`)
   console.log('Pets:')
   console.log(`  Balu   (Golden Retriever)       — Active`)
   console.log(`  Luna   (Siamese)                — MISSING ← visible in public search`)

@@ -212,8 +212,9 @@ export function OwnerPetDetail() {
                 type="email"
                 placeholder="Email Address"
                 value={enrichForm.ownerEmail}
-                onChange={(e) => setEnrichForm((p) => ({ ...p, ownerEmail: e.target.value }))}
+                disabled
                 aria-label="Email Address"
+                style={{ opacity: 0.7, cursor: 'not-allowed' }}
               />
               <input
                 type="tel"
@@ -223,6 +224,7 @@ export function OwnerPetDetail() {
                 aria-label="Phone Number"
               />
             </div>
+            <p className="text-muted" style={{ fontSize: '0.75rem', marginTop: '-8px' }}>Email is your login address and cannot be changed here.</p>
             <button type="submit" disabled={enrichSaving}>
               {enrichSaving ? 'Saving...' : 'Save Changes'}
             </button>
