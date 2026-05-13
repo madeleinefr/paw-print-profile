@@ -278,6 +278,75 @@ export class LocalAuthService {
   }
 
   /**
+   * Get the user's stored profile (contact details + address).
+   */
+  async getProfile(userId: string): Promise<Record<string, any> | null> {
+    const result = await this.docClient.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `USER#${userId}`, SK: 'METADATA' },
+    }))
+    if (!result.Item) return null
+    return {
+      ownerName: result.Item.ownerName || '',
+      ownerEmail: result.Item.email || '',
+      ownerPhone: result.Item.ownerPhone || '',
+      ownerStreet: result.Item.ownerStreet || '',
+      ownerHouseNumber: result.Item.ownerHouseNumber || '',
+      ownerZipCode: result.Item.ownerZipCode || '',
+      ownerCity: result.Item.ownerCity || '',
+    }
+  }
+
+  /**
+   * Update the user's profile (contact details + address).
+   */
+  async updateProfile(userId: string, profile: {
+    ownerName?: string
+    ownerPhone?: string
+    ownerStreet?: string
+    ownerHouseNumber?: string
+    ownerZipCode?: string
+    ownerCity?: string
+  }): Promise<void> {
+    const updates: string[] = []
+    const values: Record<string, any> = {}
+
+    if (profile.ownerName !== undefined) {
+      updates.push('ownerName = :ownerName')
+      values[':ownerName'] = profile.ownerName
+    }
+    if (profile.ownerPhone !== undefined) {
+      updates.push('ownerPhone = :ownerPhone')
+      values[':ownerPhone'] = profile.ownerPhone
+    }
+    if (profile.ownerStreet !== undefined) {
+      updates.push('ownerStreet = :ownerStreet')
+      values[':ownerStreet'] = profile.ownerStreet
+    }
+    if (profile.ownerHouseNumber !== undefined) {
+      updates.push('ownerHouseNumber = :ownerHouseNumber')
+      values[':ownerHouseNumber'] = profile.ownerHouseNumber
+    }
+    if (profile.ownerZipCode !== undefined) {
+      updates.push('ownerZipCode = :ownerZipCode')
+      values[':ownerZipCode'] = profile.ownerZipCode
+    }
+    if (profile.ownerCity !== undefined) {
+      updates.push('ownerCity = :ownerCity')
+      values[':ownerCity'] = profile.ownerCity
+    }
+
+    if (updates.length === 0) return
+
+    await this.docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `USER#${userId}`, SK: 'METADATA' },
+      UpdateExpression: `SET ${updates.join(', ')}`,
+      ExpressionAttributeValues: values,
+    }))
+  }
+
+  /**
    * Look up a user by email.
    */
   async getUserByEmail(email: string): Promise<AuthUser | null> {

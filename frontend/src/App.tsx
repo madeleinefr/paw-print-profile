@@ -15,6 +15,7 @@ import { ClinicManagement } from './pages/vet/ClinicManagement'
 import { OwnerDashboard } from './pages/owner/OwnerDashboard'
 import { ClaimPage } from './pages/owner/ClaimPage'
 import { OwnerPetDetail } from './pages/owner/OwnerPetDetail'
+import { AccountSettings } from './pages/owner/AccountSettings'
 import './App.css'
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
               <Route path="/owner/dashboard" element={<OwnerDashboard />} />
               <Route path="/owner/claim" element={<ClaimPage />} />
               <Route path="/owner/pets/:petId" element={<OwnerPetDetail />} />
+              <Route path="/owner/settings" element={<AccountSettings />} />
             </Route>
 
             {/* Default redirect */}

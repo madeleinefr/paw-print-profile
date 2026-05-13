@@ -224,6 +224,26 @@ export class PetRepository {
       expressionAttributeValues[':ownerPhone'] = input.ownerPhone
     }
 
+    if (input.ownerStreet !== undefined) {
+      updateExpressions.push('ownerStreet = :ownerStreet')
+      expressionAttributeValues[':ownerStreet'] = input.ownerStreet
+    }
+
+    if (input.ownerHouseNumber !== undefined) {
+      updateExpressions.push('ownerHouseNumber = :ownerHouseNumber')
+      expressionAttributeValues[':ownerHouseNumber'] = input.ownerHouseNumber
+    }
+
+    if (input.ownerZipCode !== undefined) {
+      updateExpressions.push('ownerZipCode = :ownerZipCode')
+      expressionAttributeValues[':ownerZipCode'] = input.ownerZipCode
+    }
+
+    if (input.ownerCity !== undefined) {
+      updateExpressions.push('ownerCity = :ownerCity')
+      expressionAttributeValues[':ownerCity'] = input.ownerCity
+    }
+
     if (input.customFields !== undefined) {
       updateExpressions.push('customFields = :customFields')
       expressionAttributeValues[':customFields'] = input.customFields
@@ -324,6 +344,26 @@ export class PetRepository {
     if (updates.ownerPhone !== undefined) {
       updateExpressions.push('ownerPhone = :ownerPhone')
       expressionAttributeValues[':ownerPhone'] = updates.ownerPhone
+    }
+
+    if (updates.ownerStreet !== undefined) {
+      updateExpressions.push('ownerStreet = :ownerStreet')
+      expressionAttributeValues[':ownerStreet'] = updates.ownerStreet
+    }
+
+    if (updates.ownerHouseNumber !== undefined) {
+      updateExpressions.push('ownerHouseNumber = :ownerHouseNumber')
+      expressionAttributeValues[':ownerHouseNumber'] = updates.ownerHouseNumber
+    }
+
+    if (updates.ownerZipCode !== undefined) {
+      updateExpressions.push('ownerZipCode = :ownerZipCode')
+      expressionAttributeValues[':ownerZipCode'] = updates.ownerZipCode
+    }
+
+    if (updates.ownerCity !== undefined) {
+      updateExpressions.push('ownerCity = :ownerCity')
+      expressionAttributeValues[':ownerCity'] = updates.ownerCity
     }
 
     if (updates.customFields !== undefined) {
