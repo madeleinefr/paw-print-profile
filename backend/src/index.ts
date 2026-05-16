@@ -17,6 +17,8 @@ import { LocalAuthService } from './services/local-auth-service'
 
 import { AWSClientFactory } from './infrastructure/aws-client-factory'
 import { CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
+import { PetRepository } from './repositories/pet-repository'
+import { NotificationService } from './services/notification-service'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -273,6 +275,74 @@ app.get('/clinics', wrap(clinicHandler))
 // ── Search routes ─────────────────────────────────────────────────────────────
 
 app.get('/search/pets', wrap(searchHandler))
+
+// ── Platform messaging (public, no auth required) ─────────────────────────────
+
+app.post('/pets/:petId/contact', async (req: Request, res: Response) => {
+  try {
+    const { petId } = req.params
+    const { senderName, senderEmail, message } = req.body
+
+    // Validate required fields
+    if (!senderName || !senderEmail || !message) {
+      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'senderName, senderEmail, and message are required' } })
+      return
+    }
+
+    // Validate senderEmail format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(senderEmail)) {
+      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'Invalid email format' } })
+      return
+    }
+
+    // Validate message length
+    if (message.length > 1000) {
+      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'Message must be 1000 characters or less' } })
+      return
+    }
+
+    // Look up the pet to get the owner's email
+    const petRepository = new PetRepository()
+    const pet = await petRepository.findById(petId)
+
+    if (!pet) {
+      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Pet not found' } })
+      return
+    }
+
+    if (!pet.ownerEmail) {
+      res.status(400).json({ error: { code: 'NO_OWNER', message: 'This pet does not have an owner to contact' } })
+      return
+    }
+
+    // Send the message via NotificationService (SNS publish)
+    const notificationService = new NotificationService()
+
+    // In local dev, log the message content for debugging
+    if (process.env.IS_LOCAL === 'true') {
+      console.log('📧 Platform message (local dev):')
+      console.log(`  To: ${pet.ownerEmail}`)
+      console.log(`  From: ${senderName} <${senderEmail}>`)
+      console.log(`  Pet: ${pet.name}`)
+      console.log(`  Message: ${message}`)
+    }
+
+    await notificationService.sendContactMessage({
+      petName: pet.name,
+      ownerEmail: pet.ownerEmail,
+      senderName,
+      senderEmail,
+      message,
+    })
+
+    // Return success without exposing any owner PII
+    res.json({ success: true, message: 'Message sent to pet owner' })
+  } catch (err: any) {
+    console.error('Failed to send contact message:', err)
+    res.status(500).json({ error: { code: 'INTERNAL', message: 'Failed to send message' } })
+  }
+})
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

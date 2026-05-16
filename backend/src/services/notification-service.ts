@@ -74,6 +74,17 @@ export interface PetFoundNotificationInput {
   previouslyAlertedClinics: Clinic[]
 }
 
+/**
+ * Input for platform contact message (anonymous contact form)
+ */
+export interface ContactMessageInput {
+  petName: string
+  ownerEmail: string
+  senderName: string
+  senderEmail: string
+  message: string
+}
+
 export class NotificationService {
   private snsClient: SNSClient
   private envDetector: EnvironmentDetector
@@ -373,6 +384,70 @@ export class NotificationService {
       recipientCount: successCount,
       error: errors.length > 0 ? errors.join('; ') : undefined,
       timestamp,
+    }
+  }
+
+  /**
+   * Send a platform contact message to a pet owner.
+   *
+   * Delivers an anonymous message from a public user to the pet owner
+   * without exposing the owner's email to the sender.
+   *
+   * Requirements: [FR-15]
+   */
+  async sendContactMessage(
+    input: ContactMessageInput
+  ): Promise<NotificationResult> {
+    const { petName, ownerEmail, senderName, senderEmail, message } = input
+    const timestamp = new Date().toISOString()
+
+    const subject = `PawPrint: Someone has a message about ${petName}`
+    const body = [
+      `You received a message through PawPrint about your pet ${petName}.`,
+      '',
+      `From: ${senderName} (${senderEmail})`,
+      '',
+      `Message:`,
+      message,
+      '',
+      `---`,
+      `You can reply directly to ${senderEmail} to respond.`,
+      `This message was sent through the PawPrint platform to protect your privacy.`,
+    ].join('\n')
+
+    try {
+      const result = await this.sendEmail(ownerEmail, subject, body)
+
+      this.log('info', 'Contact message sent to pet owner', {
+        petName,
+        senderEmail,
+        messageId: result.messageId,
+      })
+
+      return {
+        success: true,
+        messageId: result.messageId,
+        channel: result.channel,
+        recipientCount: 1,
+        timestamp,
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+
+      this.log('error', 'Failed to send contact message', {
+        petName,
+        senderEmail,
+        error: errorMessage,
+      })
+
+      return {
+        success: false,
+        channel: 'email',
+        recipientCount: 0,
+        error: errorMessage,
+        timestamp,
+      }
     }
   }
 

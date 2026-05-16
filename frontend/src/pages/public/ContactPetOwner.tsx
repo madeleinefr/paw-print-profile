@@ -10,6 +10,7 @@
 
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { api } from '../../api/client'
 
 export function ContactPetOwner() {
   const { petId } = useParams<{ petId: string }>()
@@ -29,16 +30,18 @@ export function ContactPetOwner() {
     setError(null)
 
     try {
-      // In a full implementation, this would call a backend endpoint
-      // POST /pets/{petId}/contact that sends an email to the owner
-      // via SNS/SES without exposing the owner's email to the sender.
-      //
-      // For now, we simulate the submission since the notification
-      // service is not yet implemented.
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      await api.post(`/pets/${petId}/contact`, {
+        senderName: form.senderName,
+        senderEmail: form.senderEmail,
+        message: form.message,
+      })
       setSubmitted(true)
-    } catch {
-      setError('Failed to send message. Please try again.')
+    } catch (err: any) {
+      if (err?.error?.message) {
+        setError(err.error.message)
+      } else {
+        setError('Failed to send message. Please try again.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -139,9 +142,6 @@ export function ContactPetOwner() {
         </div>
       </form>
 
-      <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '15px' }}>
-        Pet ID: {petId}
-      </p>
     </div>
   )
 }
