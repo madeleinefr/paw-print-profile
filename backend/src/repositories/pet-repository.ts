@@ -456,7 +456,7 @@ export class PetRepository {
 
       // Apply additional filters
       if (criteria.breed) {
-        pets = pets.filter(pet => pet.breed.toLowerCase().includes(criteria.breed!.toLowerCase()))
+        pets = pets.filter(pet => pet.breed && pet.breed.toLowerCase().includes(criteria.breed!.toLowerCase()))
       }
 
       if (criteria.ageMin !== undefined) {
@@ -483,7 +483,7 @@ export class PetRepository {
 
       // Apply filters
       if (criteria.breed) {
-        pets = pets.filter(pet => pet.breed.toLowerCase().includes(criteria.breed!.toLowerCase()))
+        pets = pets.filter(pet => pet.breed && pet.breed.toLowerCase().includes(criteria.breed!.toLowerCase()))
       }
 
       if (criteria.ageMin !== undefined) {

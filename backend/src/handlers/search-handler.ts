@@ -91,11 +91,13 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
   const criteria: any = {}
 
   if (species) {
-    criteria.species = species
+    // Normalize to title case for GSI2 query (e.g., "cat" → "Cat", "DOG" → "Dog")
+    criteria.species = species.charAt(0).toUpperCase() + species.slice(1).toLowerCase()
   }
 
   if (breed) {
-    criteria.breed = breed
+    // Normalize breed to title case (e.g., "golden retriever" → "Golden Retriever")
+    criteria.breed = breed.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
   }
 
   if (ageMin) {
