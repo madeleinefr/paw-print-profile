@@ -21,13 +21,24 @@ interface PendingPet {
 export function VetDashboard() {
   const { clinicId } = useAuth()
   const [pendingClaims, setPendingClaims] = useState<PendingPet[]>([])
+  const [clinicName, setClinicName] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!clinicId) return
     loadPendingClaims()
+    loadClinicName()
   }, [clinicId])
+
+  async function loadClinicName() {
+    try {
+      const data = await api.get<{ name: string }>(`/clinics/${clinicId}`)
+      setClinicName(data.name)
+    } catch {
+      // Non-critical — just won't show clinic name
+    }
+  }
 
   async function loadPendingClaims() {
     try {
@@ -45,7 +56,7 @@ export function VetDashboard() {
   return (
     <div>
       <h2>Clinic Dashboard</h2>
-      <p className="text-muted">Clinic ID: {clinicId || 'Not set'}</p>
+      {clinicName && <p className="text-muted">{clinicName}</p>}
 
       <div style={{ display: 'flex', gap: '15px', margin: '20px 0' }}>
         <Link to="/vet/pets/new">
