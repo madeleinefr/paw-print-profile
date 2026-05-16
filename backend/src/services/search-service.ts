@@ -82,7 +82,12 @@ export class SearchService {
 
       // Get images for this pet
       const petImages = await this.imageRepo.findByPet(pet.petId)
-      const images = petImages.map(img => ({ url: img.url, tags: img.tags }))
+      const images = await Promise.all(
+        petImages.map(async (img) => ({
+          url: await this.imageRepo.getUrl(img.imageId, pet.petId),
+          tags: img.tags,
+        }))
+      )
 
       const searchResult: SearchResult = {
         petId: pet.petId,
@@ -155,7 +160,12 @@ export class SearchService {
 
     // Get images for this pet
     const petImages = await this.imageRepo.findByPet(pet.petId)
-    const images = petImages.map(img => ({ url: img.url, tags: img.tags }))
+    const images = await Promise.all(
+      petImages.map(async (img) => ({
+        url: await this.imageRepo.getUrl(img.imageId, pet.petId),
+        tags: img.tags,
+      }))
+    )
 
     return {
       petId: pet.petId,
@@ -226,7 +236,12 @@ export class SearchService {
 
           // Get images for this pet
           const petImages = await this.imageRepo.findByPet(pet.petId)
-          const images = petImages.map(img => ({ url: img.url, tags: img.tags }))
+          const images = await Promise.all(
+            petImages.map(async (img) => ({
+              url: await this.imageRepo.getUrl(img.imageId, pet.petId),
+              tags: img.tags,
+            }))
+          )
 
           const searchResult: SearchResult = {
             petId: pet.petId,

@@ -96,12 +96,20 @@ export function SearchPage() {
       {/* Search filters */}
       <form className="search-form" onSubmit={handleSearch}>
         <div className="form-row">
-          <input
-            placeholder="Species (e.g., Dog, Cat)"
+          <select
             value={filters.species}
             onChange={(e) => updateFilter('species', e.target.value)}
             aria-label="Species"
-          />
+          >
+            <option value="">All Species</option>
+            <option value="Dog">Dog</option>
+            <option value="Cat">Cat</option>
+            <option value="Bird">Bird</option>
+            <option value="Rabbit">Rabbit</option>
+            <option value="Hamster">Hamster</option>
+            <option value="Reptile">Reptile</option>
+            <option value="Other">Other</option>
+          </select>
           <input
             placeholder="Breed (e.g., Golden Retriever)"
             value={filters.breed}
