@@ -23,18 +23,18 @@ The System Context Diagram follows the C4 model (Level 1) as described by Simon 
 
 ```mermaid
 graph TB
-    Vet["<b>Veterinarian</b><br/>[Person]<br/><i>Creates medically verified pet<br/>profiles and manages medical records</i>"]
-    Owner["<b>Pet Owner</b><br/>[Person]<br/><i>Claims pet profiles, enriches with<br/>personal data, uses emergency tools</i>"]
-    Public["<b>Public User / Shelter</b><br/>[Person]<br/><i>Searches for lost pets,<br/>accesses care snapshots</i>"]
+    Vet["Veterinarian\n[Person]\nCreates medically verified pet\nprofiles and manages medical records"]
+    Owner["Pet Owner\n[Person]\nClaims pet profiles, enriches with\npersonal data, uses emergency tools"]
+    Public["Public User / Shelter\n[Person]\nSearches for lost pets,\naccesses care snapshots"]
 
-    PawPrint["<b>Paw Print Profile</b><br/>[Software System]<br/><i>B2B2C serverless web application for<br/>veterinary pet information management<br/>through a co-onboarding model</i>"]
+    PawPrint["Paw Print Profile\n[Software System]\nB2B2C serverless web application for\nveterinary pet information management\nthrough a co-onboarding model"]
 
-    Cognito["<b>AWS Cognito</b><br/>[External System]<br/><i>Managed authentication service<br/>providing JWT tokens and user pools</i>"]
-    SES["<b>AWS SES / SNS</b><br/>[External System]<br/><i>Email and notification delivery for<br/>missing pet alerts and platform messaging</i>"]
+    Cognito["AWS Cognito\n[External System]\nManaged authentication service\nproviding JWT tokens and user pools"]
+    SES["AWS SES / SNS\n[External System]\nEmail and notification delivery for\nmissing pet alerts and platform messaging"]
 
-    Vet -->|"Creates medical profiles,<br/>manages records [HTTPS]"| PawPrint
-    Owner -->|"Claims profiles, enriches data,<br/>reports missing [HTTPS]"| PawPrint
-    Public -->|"Searches lost pets, contacts<br/>owners anonymously [HTTPS]"| PawPrint
+    Vet -->|"Creates medical profiles,\nmanages records [HTTPS]"| PawPrint
+    Owner -->|"Claims profiles, enriches data,\nreports missing [HTTPS]"| PawPrint
+    Public -->|"Searches lost pets, contacts\nowners anonymously [HTTPS]"| PawPrint
 
     PawPrint -->|"Authenticates users [AWS SDK]"| Cognito
     PawPrint -->|"Sends notifications [AWS SDK]"| SES
