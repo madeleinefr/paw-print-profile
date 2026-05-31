@@ -5,10 +5,10 @@
  * Properties covered:
  *   Property 33: Missing pet flyer generation (reportMissing produces a flyer URL)
  *   Property 34: Flyer format (PDF is letter-size and contains required content)
- *   Property 54: 3-click flyer generation from dashboard
- *   Property 55: Care snapshot generation and access via EmergencyToolsService
- *   Property 56: Owner privacy protection in flyers
- *   Property 57: Photo guidance display (guidelines and quality feedback)
+ *   Property 56: 3-click flyer generation from dashboard
+ *   Property 57: Care snapshot generation and access via EmergencyToolsService
+ *   Property 58: Owner privacy protection in flyers
+ *   Property 59: Photo guidance display (guidelines and quality feedback)
  *
  * Validates: Requirements [FR-08], [FR-09], [FR-10], [FR-13], [FR-15], [FR-16], [NFR-USA-01]
  */
@@ -379,9 +379,9 @@ describe('[FR-09][NFR-USA-01] Property 34: Flyer format', () => {
   })
 })
 
-// ── Property 54: 3-click flyer generation from dashboard ─────────────────────
+// ── Property 56: 3-click flyer generation from dashboard ─────────────────────
 
-describe('[NFR-USA-01] Property 54: 3-click flyer generation from dashboard', () => {
+describe('[NFR-USA-01] Property 56: 3-click flyer generation from dashboard', () => {
   /**
    * Validates: Requirements [NFR-USA-01]
    *
@@ -409,9 +409,9 @@ describe('[NFR-USA-01] Property 54: 3-click flyer generation from dashboard', ()
   }, 300_000)
 })
 
-// ── Property 55: Care snapshot generation and access via EmergencyToolsService
+// ── Property 57: Care snapshot generation and access via EmergencyToolsService
 
-describe('[FR-13] Property 55: Care snapshot generation and access', () => {
+describe('[FR-13] Property 57: Care snapshot generation and access', () => {
   /**
    * Validates: Requirements [FR-13]
    *
@@ -446,9 +446,9 @@ describe('[FR-13] Property 55: Care snapshot generation and access', () => {
 })
 
 
-// ── Property 56: Owner privacy protection in flyers ──────────────────────────
+// ── Property 58: Owner privacy protection in flyers ──────────────────────────
 
-describe('[FR-15] Property 56: Owner privacy protection in flyers', () => {
+describe('[FR-15] Property 58: Owner privacy protection in flyers', () => {
   /**
    * Validates: Requirements [FR-15], [FR-08]
    *
@@ -587,9 +587,9 @@ describe('[FR-15] Property 56: Owner privacy protection in flyers', () => {
   })
 })
 
-// ── Property 57: Photo guidance display ──────────────────────────────────────
+// ── Property 59: Photo guidance display ──────────────────────────────────────
 
-describe('[FR-16] Property 57: Photo guidance display', () => {
+describe('[FR-16] Property 59: Photo guidance display', () => {
   /**
    * Validates: Requirements [FR-16]
    *

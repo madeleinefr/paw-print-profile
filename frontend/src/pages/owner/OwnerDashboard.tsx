@@ -31,6 +31,7 @@ export function OwnerDashboard() {
   const [missingPetId, setMissingPetId] = useState<string | null>(null)
   const [contactMethod, setContactMethod] = useState<'phone' | 'email' | 'clinic'>('clinic')
   const [missingNotes, setMissingNotes] = useState('')
+  const [lastSeenLocation, setLastSeenLocation] = useState('')
   const [missingSubmitting, setMissingSubmitting] = useState(false)
   const [missingResult, setMissingResult] = useState<{ petId: string; flyerUrl: string } | null>(null)
 
@@ -63,7 +64,7 @@ export function OwnerDashboard() {
     try {
       const data = await api.post<{ petId: string; flyerUrl: string }>(`/pets/${missingPetId}/missing`, {
         searchRadiusKm: 50,
-        lastSeenLocation: '',
+        lastSeenLocation: lastSeenLocation.trim(),
         additionalNotes: missingNotes,
         contactMethod,
       })
@@ -153,7 +154,14 @@ export function OwnerDashboard() {
             </div>
             <div className="form-row">
               <input
-                placeholder="Additional notes (optional, e.g., last seen location)"
+                placeholder="Last seen location (e.g., Englischer Garten, München)"
+                value={lastSeenLocation}
+                onChange={(e) => setLastSeenLocation(e.target.value)}
+                required
+                aria-label="Last seen location"
+              />
+              <input
+                placeholder="Additional notes (optional, e.g., wearing blue collar)"
                 value={missingNotes}
                 onChange={(e) => setMissingNotes(e.target.value)}
                 aria-label="Additional notes"
@@ -164,7 +172,7 @@ export function OwnerDashboard() {
               <button type="submit" disabled={missingSubmitting} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
                 {missingSubmitting ? 'Reporting...' : 'Confirm Report Missing'}
               </button>
-              <button type="button" className="btn-secondary" onClick={() => { setMissingPetId(null); setMissingNotes('') }}>
+              <button type="button" className="btn-secondary" onClick={() => { setMissingPetId(null); setMissingNotes(''); setLastSeenLocation('') }}>
                 Cancel
               </button>
             </div>
@@ -209,7 +217,7 @@ export function OwnerDashboard() {
               /* Click 1: Open missing report form */
               <button
                 type="button"
-                onClick={() => { setMissingPetId(pet.petId); setMissingResult(null); setContactMethod('clinic'); setMissingNotes('') }}
+                onClick={() => { setMissingPetId(pet.petId); setMissingResult(null); setContactMethod('clinic'); setMissingNotes(''); setLastSeenLocation('') }}
                 style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
               >
                 Report Missing

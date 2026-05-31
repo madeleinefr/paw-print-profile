@@ -58,6 +58,8 @@ export function SignUpPage() {
         clinicId: userType === 'vet' ? clinicId.trim() : undefined,
       })
       setSuccess(true)
+      // Auto-redirect to login after 2 seconds
+      setTimeout(() => navigate('/login'), 2000)
     } catch (err) {
       if (err instanceof AuthApiException) {
         setError(err.error.message)
@@ -73,10 +75,10 @@ export function SignUpPage() {
     return (
       <div>
         <h2>Account Created</h2>
-        <p>Your account has been created successfully. You can now sign in.</p>
+        <p>Your account has been created successfully. Redirecting to sign in...</p>
         <div className="form-row">
           <button type="button" onClick={() => navigate('/login')}>
-            Go to Sign In
+            Go to sign in
           </button>
         </div>
       </div>

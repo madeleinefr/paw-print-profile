@@ -12,6 +12,7 @@
  */
 
 import PDFDocument from 'pdfkit'
+import sharp from 'sharp'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { Pet, Clinic, PetImage } from '../models/entities'
@@ -255,6 +256,7 @@ export class FlyerGenerationService {
 
   /**
    * Fetch the first available pet image from S3 as a Buffer.
+   * Converts to PNG for PDFKit compatibility (PDFKit doesn't support WebP).
    * Returns null if no images exist or if the fetch fails.
    */
   async fetchPetImage(images: PetImage[]): Promise<Buffer | null> {
@@ -272,10 +274,13 @@ export class FlyerGenerationService {
           })
         )
         if (response.Body) {
-          return await streamToBuffer(response.Body as NodeJS.ReadableStream)
+          const rawBuffer = await streamToBuffer(response.Body as NodeJS.ReadableStream)
+          // Convert to PNG for PDFKit compatibility (handles WebP, JPEG, PNG, TIFF)
+          const pngBuffer = await sharp(rawBuffer).png().toBuffer()
+          return pngBuffer
         }
       } catch {
-        // Image not found or S3 error — try next image
+        // Image not found, S3 error, or conversion failed — try next image
         continue
       }
     }

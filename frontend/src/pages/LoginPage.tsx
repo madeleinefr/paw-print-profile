@@ -73,7 +73,7 @@ export function LoginPage() {
 
   return (
     <div>
-      <h2>Sign In</h2>
+      <h2>Sign in</h2>
       <p className="text-muted">
         Sign in to access your dashboard.
       </p>
@@ -119,7 +119,7 @@ export function LoginPage() {
         {/* Submit */}
         <div className="form-row">
           <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing In...' : 'Sign In'}
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
         </div>
 
