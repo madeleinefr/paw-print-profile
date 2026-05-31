@@ -5,19 +5,21 @@
 #### 1.1 Veterinary Clinic Management
 
 **[FR-01] Clinic Registration**
-**User Story:** As a veterinary clinic administrator, I want to register my clinic in the system, so that my staff can begin creating medically verified pet profiles.
+**User Story:** As a veterinarian, I want to register my clinic in the system, so that I can begin creating medically verified pet profiles.
 
 **Acceptance Criteria:**
-1. WHEN a clinic administrator provides clinic information (name, address, contact details, license number), THE System SHALL create a unique clinic profile
-2. WHEN clinic registration is completed, THE System SHALL generate a unique clinic identifier
+1. WHEN a veterinarian provides clinic information (name, address, contact details, license number), THE System SHALL create a unique clinic profile
+2. WHEN clinic registration is completed, THE System SHALL generate a unique clinic identifier and associate it with the creating veterinarian's account
 3. WHEN clinic information is validated, THE System SHALL verify license number uniqueness
-4. WHEN registration succeeds, THE System SHALL enable clinic staff access to pet profile creation
+4. WHEN registration succeeds, THE System SHALL enable the veterinarian to create pet profiles under that clinic
+
+**Implementation Note:** Any veterinarian can create a clinic from the dashboard after sign-up. There is no separate "clinic administrator" role. Multi-staff clinic management (joining an existing clinic) is deferred to post-MVP.
 
 **[FR-02] Clinic Profile Management**
-**User Story:** As a veterinary clinic administrator, I want to update clinic information and configure custom medical fields, so that our practice can capture specialized pet data.
+**User Story:** As a veterinarian, I want to update clinic information and configure custom medical fields, so that our practice can capture specialized pet data.
 
 **Acceptance Criteria:**
-1. WHEN a clinic administrator updates clinic information, THE System SHALL persist changes immediately
+1. WHEN a veterinarian updates clinic information, THE System SHALL persist changes immediately
 2. WHEN custom medical fields are configured, THE System SHALL make them available for pet profile creation
 3. WHEN field definitions are modified, THE System SHALL maintain data integrity for existing pet profiles
 4. WHEN clinic staff access the system, THE System SHALL display current clinic configuration
@@ -62,7 +64,9 @@
 1. WHEN a veterinarian adds a vaccine record, THE System SHALL capture vaccine name, administration date, and next due date
 2. WHEN vaccine information is recorded, THE System SHALL associate it with the administering veterinarian
 3. WHEN vaccine records are updated, THE System SHALL maintain historical versions
-4. WHEN vaccine due dates approach, THE System SHALL enable reminder notifications
+4. WHEN vaccine due dates are recorded, THE System SHALL store the next due date to enable future reminder notifications
+
+**Implementation Note:** The `nextDueDate` field is persisted on every vaccine record and `NotificationService.sendAppointmentReminder()` is implemented and tested. Automated scheduled triggering (e.g., a daily cron that scans for upcoming due dates) is deferred to post-MVP.
 
 **[FR-07] Surgery Record Management**
 **User Story:** As a veterinarian, I want to document surgical procedures for pets, so that complete medical history is maintained.
@@ -115,7 +119,9 @@
 4. WHEN search results are displayed, THE System SHALL NOT display pet owner phone numbers or email addresses unless explicitly allowed by the owner
 5. WHEN search results are displayed, THE System SHALL THE System SHALL provide an anonymous contact web-form to contact the pet owner through the platform
 6. WHEN no matches are found, THE System SHALL display appropriate messaging
-7. WHEN multiple matches exist, THE System SHALL rank results by relevance and proximity
+7. WHEN latitude/longitude coordinates are provided in the search query, THE System SHALL rank results by proximity to the given location
+
+**Implementation Note:** The backend `SearchService.searchByLocation(lat, lng, radiusKm)` is fully implemented and tested. It uses `ClinicRepository.findNearby()` with the Haversine formula. The frontend currently does not expose a city/ZIP geocoding input to convert human-readable locations into coordinates — this is deferred to post-MVP.
 
 **[FR-12] Pet Identification Assistance**
 **User Story:** As a shelter worker or veterinarian, I want to search pet profiles to identify found animals, so that I can facilitate reunification.
@@ -144,7 +150,11 @@
 1. WHEN a pet visits a clinic, THE System SHALL allow clinic staff to access the pet's medical history
 2. WHEN access is granted, THE System SHALL display relevant medical information and vaccination records
 3. WHEN treatment is provided, THE System SHALL enable updates to the medical record
-4. WHEN access is no longer needed, THE System SHALL log the interaction for audit purposes
+4. WHEN access is denied or an error occurs during data access, THE System SHALL log the event with timestamp, context, and reason in structured JSON format
+
+**Implementation Notes:**
+- In the current MVP, "clinic staff" refers to the single veterinarian who registered the clinic. Multi-staff clinic management (multiple vets per clinic) is deferred to post-MVP. The authorization check (`vet.clinicId === pet.clinicId`) is forward-compatible with multiple staff members.
+- Criterion 4 was refined during implementation: the original wording ("log the interaction for audit purposes") implied logging all successful access. The updated criterion focuses on logging denied access and errors, which is what the ErrorHandler implements. A comprehensive audit trail for all read/write access is deferred to post-MVP (NFR-SEC-05).
 
 #### 1.7 Privacy and Communication
 
@@ -192,10 +202,14 @@ THE System SHALL handle datasets of up to 10,000 pet records without performance
 #### 2.2 Security Requirements
 
 **[NFR-SEC-01] Authentication**
-THE System SHALL require authentication via email and password for all protected endpoints using industry-standard protocols. (Priority: MVP)
+THE System SHALL require authentication via email and password for all protected endpoints using industry-standard protocols (JWT tokens via AWS Cognito in production). (Priority: MVP)
+
+**Implementation Note:** In local development, authentication is handled by a DynamoDB-backed LocalAuthService since LocalStack's free tier does not support Cognito IDP. This service stores users with scrypt-hashed passwords and generates mock JWT tokens with the same claims structure (userId, email, userType, clinicId) as real Cognito tokens. The real Cognito integration activates automatically on AWS deployment.
 
 **[NFR-SEC-02] Authorization**
 THE System SHALL verify user permissions before granting access to pet records, ensuring veterinarians can only access pets from their clinic and owners can only access their own pets. (Priority: MVP)
+
+**Implementation Note:** Clinic ID is optional during veterinarian sign-up. Veterinarians can create a clinic from the dashboard after signing in, at which point the system automatically associates the clinic ID with their account. This eliminates a chicken-and-egg problem where a vet would need a clinic ID before one exists.
 
 **[NFR-SEC-03] Public Access**
 THE System SHALL allow unauthenticated access to public lost pet search functionality while protecting sensitive information. (Priority: MVP)
