@@ -49,7 +49,11 @@ graph TB
 
 ### UML Component Diagram (Level 2)
 
-This UML Component Diagram (UML 2.5, §11.6) illustrates the internal structural design of the system using an AWS Serverless paradigm. Components are shown with the standard UML component notation (rectangle with the «component» stereotype). Dependencies between components are shown as dashed arrows with the «use» stereotype. The diagram shows how the client-side React applications interface with the API layer, which routes traffic to domain-specific Lambda compute functions. State persistence is handled via a single-table Amazon DynamoDB design, while heavy binary assets, such as pet images and generated missing flyers, are stored in Amazon S3.
+This UML Component Diagram (UML 2.5, SS11.6) illustrates the internal structural design of the system using an AWS Serverless paradigm. Components are shown with the standard UML component notation (rectangle with the component stereotype). Dependencies between components are shown as dashed arrows with the use stereotype. The diagram shows how the client-side React applications interface with the API layer, which routes traffic to domain-specific compute functions. State persistence is handled via a single-table Amazon DynamoDB design, while heavy binary assets, such as pet images and generated missing flyers, are stored in Amazon S3.
+
+**Deployment note:** This diagram represents the target AWS deployment architecture where each compute component maps to an individual AWS Lambda function behind API Gateway. In local development, the same handler modules run within a single Express.js server (`index.ts`) that replicates API Gateway routing. The layered separation is identical in both environments — only the entry point differs. The `EnvironmentDetector` class selects the appropriate service endpoints at startup, ensuring identical business logic executes locally and in production.
+
+**Abstraction note:** For clarity, the diagram shows the primary domain-boundary services. Each compute component internally delegates to additional sub-services not shown here (e.g., Emergency Tools internally uses `FlyerGenerationService`, `MissingPetService`, `PhotoGuidanceService`, and `CareSnapshotService`; Pet Co-Onboarding uses `ProfileClaimingService`). An `AuthorizationService` is used as a cross-cutting concern by all handlers to enforce role-based access control.
 
 ```plantuml
 @startuml Component Diagram
@@ -88,7 +92,7 @@ package "Data Access Layer" <<subsystem>> {
 }
 
 package "Data Layer" <<subsystem>> {
-    [<<datastore>>\nDynamoDB\n(Single-Table Design)] <<component, datasrore>> as DDB
+    [<<datastore>>\nDynamoDB\n(Single-Table Design)] <<component>> as DDB
     [<<storage>>\nS3 Bucket\n(Images & Flyers)] <<component>> as S3
 }
 
@@ -97,7 +101,7 @@ package "External Services" <<subsystem>> {
     [AWS SNS] <<component>> as SNS
 }
 
-' Client to API — UML dependency
+' Client to API
 VetUI ..> APIGW : <<use>>
 OwnerUI ..> APIGW : <<use>>
 PublicUI ..> APIGW : <<use>>
@@ -139,7 +143,9 @@ Notify ..> SES : <<use>>
 
 ### UML Use Case Diagram
 
-The Use Case Diagram (UML 2.5, §18.1) maps the functional requirements to their authorized actors, highlighting the strict separation of concerns within the Co-Onboarding model. It visualizes how the initial "Medical Profile Creation" is securely restricted to the Veterinary Clinic, while the subsequent "Profile Claiming," "Enrichment," and "Flyer Generation" are exclusively handed over to the Pet Owner. Actors are represented as stick figures (external entities interacting with the system). Use cases are shown as ovals within the system boundary rectangle. Actor-to-use-case associations are plain lines (no arrowheads). Relationships between use cases use standard UML stereotypes: «include» for mandatory sub-behavior and «extend» for optional/conditional behavior.
+The Use Case Diagram (UML 2.5, SS18.1) maps the primary functional requirements to their authorized actors, highlighting the strict separation of concerns within the Co-Onboarding model. It visualizes how the initial "Medical Profile Creation" is securely restricted to the Veterinary Clinic, while the subsequent "Profile Claiming," "Enrichment," and "Flyer Generation" are exclusively handed over to the Pet Owner. Actors are represented as stick figures (external entities interacting with the system). Use cases are shown as ovals within the system boundary rectangle. Actor-to-use-case associations are plain lines (no arrowheads). Relationships between use cases use standard UML stereotypes: <<include>> for mandatory sub-behavior and <<extend>> for optional/conditional behavior.
+
+**Scope note:** For readability, this diagram shows the primary use cases that define the system's core value proposition. Additional sub-features (e.g., photo upload guidance, vaccine reminder scheduling, platform messaging delivery) are implemented but omitted here to maintain diagram clarity. The full set of implemented features is documented in the Requirements Verification document.
 
 ```plantuml
 @startuml Use Case Diagram
@@ -183,7 +189,7 @@ Public -- UC8
 Public -- UC15
 
 UC1 ..> UC2 : <<include>>
-UC3 ..> UC4 : <<include>>
+UC3 <.. UC4 : <<extend>>
 UC4 <.. UC11 : <<extend>>
 UC5 <.. UC6 : <<extend>>
 UC8 <.. UC14 : <<extend>>
