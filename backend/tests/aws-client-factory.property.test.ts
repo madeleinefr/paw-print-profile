@@ -18,7 +18,7 @@ describe('Feature: paw-print-profile, AWS Client Factory Properties', () => {
     ;(EnvironmentDetector as any).instance = undefined
   })
 
-  describe('[NFR-MNT-01] Property 3: Environment variable configuration', () => {
+  describe('[NFR-MNT-01] Property 39: Environment variable configuration', () => {
     it('should configure clients with LocalStack endpoints when IS_LOCAL is true', () => {
       fc.assert(
         fc.property(

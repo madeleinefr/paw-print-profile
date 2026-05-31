@@ -72,9 +72,14 @@ export function AppLayout() {
             </button>
           </span>
         ) : (
-          <Link to="/login" style={{ marginLeft: 'auto' }}>
-            <button type="button">Login</button>
-          </Link>
+          <span style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <Link to="/login">
+              <button type="button">Login</button>
+            </Link>
+            <Link to="/signup">
+              <button type="button" className="btn-secondary">Sign up</button>
+            </Link>
+          </span>
         )}
       </nav>
 

@@ -78,6 +78,15 @@ async function seed() {
       userType: 'owner',
     })
     ownerUserId = ownerUser.userId
+    // Populate user profile with contact details (used by Account Settings)
+    await authService.updateProfile(ownerUserId, {
+      ownerName: 'Anna Müller',
+      ownerPhone: '+49-176-12345678',
+      ownerStreet: 'Leopoldstraße',
+      ownerHouseNumber: '27',
+      ownerZipCode: '80802',
+      ownerCity: 'München',
+    })
     console.log(`  ✓ Owner account: ${OWNER_EMAIL} / ${OWNER_PASSWORD} (ID: ${ownerUserId})`)
   } catch (err: any) {
     if (err.message?.includes('already exists')) {

@@ -39,7 +39,7 @@ interface ContactDetails {
 }
 
 export function AccountSettings() {
-  const { email, userId } = useAuth()
+  const { email } = useAuth()
 
   const [pets, setPets] = useState<PetSummary[]>([])
   const [overview, setOverview] = useState<AccountOverview>({ totalPets: 0, claimedProfiles: 0, pendingProfiles: 0 })
@@ -160,11 +160,6 @@ export function AccountSettings() {
             <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>My Pets</p>
           </div>
         </div>
-        {userId && (
-          <p className="text-muted" style={{ marginTop: '12px', fontSize: '0.8rem' }}>
-            Account ID: {userId}
-          </p>
-        )}
       </div>
 
       {/* Contact Details Section */}

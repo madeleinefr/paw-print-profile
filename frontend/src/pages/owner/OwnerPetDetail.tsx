@@ -178,6 +178,11 @@ export function OwnerPetDetail() {
         <p>{pet.species} · {pet.breed} · {pet.age} years</p>
         <p>Status: <span style={{ background: pet.profileStatus === 'Active' ? '#d4edda' : '#fff3cd', color: pet.profileStatus === 'Active' ? '#155724' : '#856404', padding: '2px 8px', borderRadius: '4px', fontSize: '0.85rem' }}>{pet.profileStatus}</span></p>
         {pet.medicallyVerified && <p style={{ fontSize: '0.85rem', color: '#28a745' }}>✓ Medically Verified</p>}
+        {pet.isMissing && (
+          <p style={{ marginTop: '10px', fontSize: '0.9rem', color: '#dc3545', fontWeight: 600 }}>
+            This pet is currently reported as missing.
+          </p>
+        )}
       </div>
 
       {error && <p style={{ color: '#c33', margin: '15px 0' }}>{error}</p>}
