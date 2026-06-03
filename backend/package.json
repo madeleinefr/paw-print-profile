@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "build:lambda": "tsc --project tsconfig.lambda.json && node scripts/prepare-lambda.cjs",
     "dev": "tsx watch --env-file=.env src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -45,6 +46,7 @@
     "@types/pdfkit": "^0.13.3",
     "@types/uuid": "^9.0.7",
     "@vitest/coverage-v8": "^1.1.0",
+    "esbuild": "^0.21.5",
     "fast-check": "^3.15.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",

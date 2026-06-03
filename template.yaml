@@ -1,0 +1,833 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Paw Print Profile - B2B2C Veterinary Pet Registry
+  Serverless application for veterinary pet co-onboarding, profile claiming,
+  emergency tools, and controlled information sharing.
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: paw-print-profile
+    Description: B2B2C Veterinary Pet Registry
+    Author: Paw Print Profile
+    SemanticVersion: 1.0.0
+  BuildMethod: nodejs20.x
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment environment
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARN
+      - ERROR
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Timeout: 30
+    MemorySize: 512
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        DYNAMODB_TABLE: !Ref VetPetRegistryTable
+        S3_BUCKET: !Ref PetImagesBucket
+        SNS_CLAIMING_TOPIC: !Ref ClaimingConfirmationTopic
+        SNS_MISSING_PET_TOPIC: !Ref MissingPetAlertTopic
+        COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+        COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+        ENVIRONMENT: !Ref Environment
+        LOG_LEVEL: !Ref LogLevel
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+
+Resources:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # DynamoDB - Single Table Design
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  VetPetRegistryTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub 'VetPetRegistry-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+        - AttributeName: GSI3PK
+          AttributeType: S
+        - AttributeName: GSI3SK
+          AttributeType: S
+        - AttributeName: GSI4PK
+          AttributeType: S
+        - AttributeName: GSI4SK
+          AttributeType: S
+        - AttributeName: GSI5PK
+          AttributeType: S
+        - AttributeName: GSI5SK
+          AttributeType: S
+        - AttributeName: GSI6PK
+          AttributeType: S
+        - AttributeName: GSI6SK
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+      GlobalSecondaryIndexes:
+        # GSI1: License number lookup for clinics
+        # PK: LICENSE#{licenseNumber}, SK: CLINIC#{clinicId}
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+        # GSI2: Pet search by species and breed
+        # PK: SPECIES#{species}, SK: BREED#{breed}#AGE#{age}
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+        # GSI3: Owner lookup (only for claimed pets)
+        # PK: OWNER#{ownerId}, SK: PET#{petId}
+        - IndexName: GSI3
+          KeySchema:
+            - AttributeName: GSI3PK
+              KeyType: HASH
+            - AttributeName: GSI3SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+        # GSI4: Claiming code lookup (only for pending pets)
+        # PK: CLAIM#{claimingCode}, SK: PET#{petId}
+        - IndexName: GSI4
+          KeySchema:
+            - AttributeName: GSI4PK
+              KeyType: HASH
+            - AttributeName: GSI4SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+        # GSI5: Care snapshot access code lookup
+        # PK: ACCESS#{accessCode}, SK: SNAPSHOT#{snapshotId}
+        - IndexName: GSI5
+          KeySchema:
+            - AttributeName: GSI5PK
+              KeyType: HASH
+            - AttributeName: GSI5SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+        # GSI6: Clinic-pet lookup (all pets for a clinic)
+        # PK: CLINIC#{clinicId}, SK: PET#{petId}
+        - IndexName: GSI6
+          KeySchema:
+            - AttributeName: GSI6PK
+              KeyType: HASH
+            - AttributeName: GSI6SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # S3 - Pet Images and Care Snapshots
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  PetImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'paw-print-profile-images-${AWS::AccountId}-${Environment}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+            ExposedHeaders:
+              - ETag
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteTempUploads
+            Prefix: temp/
+            Status: Enabled
+            ExpirationInDays: 1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Cognito Auto-Confirm Lambda Trigger (must be before UserPool)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  AutoConfirmRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  AutoConfirmFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'PawPrint-AutoConfirm-${Environment}'
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt AutoConfirmRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            event.response.autoConfirmUser = true;
+            event.response.autoVerifyEmail = true;
+            return event;
+          };
+      Description: Auto-confirms Cognito users on sign-up (demo/dev only)
+
+  AutoConfirmPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AutoConfirmFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Cognito - Authentication with B2B2C User Roles
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub 'PawPrintProfile-${Environment}'
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      UsernameConfiguration:
+        CaseSensitive: false
+      LambdaConfig:
+        PreSignUp: !GetAtt AutoConfirmFunction.Arn
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: userType
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MaxLength: '10'
+            MinLength: '3'
+        - Name: clinicId
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MaxLength: '64'
+            MinLength: '0'
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub 'PawPrintProfile-WebClient-${Environment}'
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      ReadAttributes:
+        - email
+        - custom:userType
+        - custom:clinicId
+      WriteAttributes:
+        - email
+        - custom:userType
+        - custom:clinicId
+
+  VeterinariansGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Veterinarians
+      UserPoolId: !Ref CognitoUserPool
+      Description: Veterinary clinic staff who create medically verified pet profiles
+
+  PetOwnersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: PetOwners
+      UserPoolId: !Ref CognitoUserPool
+      Description: Pet owners who claim and enrich pet profiles
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # API Gateway - REST API with Cognito Authorizer
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  PawPrintApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub 'PawPrintProfile-API-${Environment}'
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id'"
+        AllowOrigin: "'*'"
+      GatewayResponses:
+        UNAUTHORIZED:
+          StatusCode: 401
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id'"
+        ACCESS_DENIED:
+          StatusCode: 403
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt CognitoUserPool.Arn
+            Identity:
+              Header: Authorization
+        AddDefaultAuthorizerToCorsPreflight: false
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Lambda Functions
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  # Pet Co-Onboarding Function
+  # Handles: POST /pets, POST /pets/claim, GET/PUT/DELETE /pets/{petId},
+  #          POST /pets/{petId}/vaccines, POST /pets/{petId}/surgeries,
+  #          POST /pets/{petId}/images
+  PetCoOnboardingFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/pet-co-onboarding-handler.ts
+    Properties:
+      FunctionName: !Sub 'PawPrint-PetCoOnboarding-${Environment}'
+      CodeUri: backend/
+      Handler: pet-co-onboarding-handler.handler
+      Description: Handles pet medical profile creation, claiming, and enrichment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VetPetRegistryTable
+        - S3CrudPolicy:
+            BucketName: !Ref PetImagesBucket
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ClaimingConfirmationTopic.TopicName
+      Events:
+        CreatePet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets
+            Method: POST
+        ClaimPet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/claim
+            Method: POST
+        GetPet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}
+            Method: GET
+        ListPets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets
+            Method: GET
+        GetPendingClaims:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/pending-claims
+            Method: GET
+        UpdatePet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}
+            Method: PUT
+        DeletePet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}
+            Method: DELETE
+        AddVaccine:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/vaccines
+            Method: POST
+        AddSurgery:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/surgeries
+            Method: POST
+        UploadImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/images
+            Method: POST
+
+  # Profile Claiming Function
+  # Handles: POST /claiming-codes/validate, POST /profiles/{petId}/transfer,
+  #          GET /profiles/pending, PUT /profiles/{petId}/enrich
+  ProfileClaimingFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/pet-co-onboarding-handler.ts
+    Properties:
+      FunctionName: !Sub 'PawPrint-ProfileClaiming-${Environment}'
+      CodeUri: backend/
+      Handler: pet-co-onboarding-handler.handler
+      Description: Handles claiming code validation, ownership transfer, and profile enrichment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VetPetRegistryTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ClaimingConfirmationTopic.TopicName
+      Events:
+        ValidateClaimingCode:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /claiming-codes/validate
+            Method: POST
+        TransferOwnership:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /profiles/{petId}/transfer
+            Method: POST
+        GetPendingProfiles:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /profiles/pending
+            Method: GET
+        EnrichProfile:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /profiles/{petId}/enrich
+            Method: PUT
+
+  # Emergency Tools Function
+  # Handles: POST /pets/{petId}/missing, PUT /pets/{petId}/found,
+  #          GET /pets/{petId}/flyer, POST /pets/{petId}/care-snapshot,
+  #          GET /care-snapshots/{accessCode}, GET /pets/{petId}/photo-guidance
+  EmergencyToolsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/emergency-tools-handler.ts
+    Properties:
+      FunctionName: !Sub 'PawPrint-EmergencyTools-${Environment}'
+      CodeUri: backend/
+      Handler: emergency-tools-handler.handler
+      Description: Handles missing pet reporting, flyer generation, care snapshots, and photo guidance
+      MemorySize: 1024
+      Timeout: 60
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VetPetRegistryTable
+        - S3CrudPolicy:
+            BucketName: !Ref PetImagesBucket
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MissingPetAlertTopic.TopicName
+      Events:
+        ReportMissing:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/missing
+            Method: POST
+        MarkFound:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/found
+            Method: PUT
+        GetFlyer:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/flyer
+            Method: GET
+        CreateCareSnapshot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/care-snapshot
+            Method: POST
+        AccessCareSnapshot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /care-snapshots/{accessCode}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        ContactOwner:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/contact
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        GetPhotoGuidance:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/photo-guidance
+            Method: GET
+
+  # Clinic Management Function
+  # Handles: POST /clinics, GET/PUT /clinics/{clinicId},
+  #          GET /clinics/{clinicId}/pets, POST /clinics/{clinicId}/custom-fields
+  ClinicFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/clinic-handler.ts
+    Properties:
+      FunctionName: !Sub 'PawPrint-Clinic-${Environment}'
+      CodeUri: backend/
+      Handler: clinic-handler.handler
+      Description: Handles clinic registration, management, and pet listings
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VetPetRegistryTable
+      Events:
+        CreateClinic:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /clinics
+            Method: POST
+        GetClinic:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /clinics/{clinicId}
+            Method: GET
+        UpdateClinic:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /clinics/{clinicId}
+            Method: PUT
+        GetClinicPets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /clinics/{clinicId}/pets
+            Method: GET
+        ConfigureCustomFields:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /clinics/{clinicId}/custom-fields
+            Method: POST
+
+  # Search Function (Public, no auth required)
+  # Handles: GET /search/pets
+  SearchFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/search-handler.ts
+    Properties:
+      FunctionName: !Sub 'PawPrint-Search-${Environment}'
+      CodeUri: backend/
+      Handler: search-handler.handler
+      Description: Handles public lost pet search (no authentication required)
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VetPetRegistryTable
+        - S3ReadPolicy:
+            BucketName: !Ref PetImagesBucket
+      Events:
+        SearchPets:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /search/pets
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  # Auth Function (Public, no Cognito authorizer — handles its own auth)
+  # Handles: POST /auth/signup, /auth/signin, /auth/refresh, /auth/signout,
+  #          GET /auth/me, POST /auth/associate-clinic,
+  #          GET/PUT /account/profile
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/auth-handler.ts
+    Properties:
+      FunctionName: !Sub 'PawPrint-Auth-${Environment}'
+      CodeUri: backend/
+      Handler: auth-handler.handler
+      Description: Handles authentication, account management, and profile operations
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VetPetRegistryTable
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+          COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+      Events:
+        SignUp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /auth/signup
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        SignIn:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /auth/signin
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        Refresh:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /auth/refresh
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        GetMe:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /auth/me
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        SignOut:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /auth/signout
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        AssociateClinic:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /auth/associate-clinic
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        GetProfile:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /account/profile
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        UpdateProfile:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /account/profile
+            Method: PUT
+            Auth:
+              Authorizer: NONE
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # SNS Topics - Notifications
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  # Claiming confirmation notifications (sent when profile is claimed)
+  ClaimingConfirmationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'PawPrint-ClaimingConfirmation-${Environment}'
+      DisplayName: Paw Print Profile Claiming Confirmations
+
+  # Missing pet alert notifications (sent to nearby clinics)
+  MissingPetAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub 'PawPrint-MissingPetAlert-${Environment}'
+      DisplayName: Paw Print Missing Pet Alerts
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Outputs
+# ─────────────────────────────────────────────────────────────────────────────
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${PawPrintApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/'
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref VetPetRegistryTable
+
+  BucketName:
+    Description: S3 bucket name for pet images
+    Value: !Ref PetImagesBucket
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref CognitoUserPoolClient
+
+  ClaimingTopicArn:
+    Description: SNS Topic ARN for claiming confirmations
+    Value: !Ref ClaimingConfirmationTopic
+
+  MissingPetTopicArn:
+    Description: SNS Topic ARN for missing pet alerts
+    Value: !Ref MissingPetAlertTopic
+
+  PetCoOnboardingFunctionArn:
+    Description: Pet Co-Onboarding Lambda function ARN
+    Value: !GetAtt PetCoOnboardingFunction.Arn
+
+  EmergencyToolsFunctionArn:
+    Description: Emergency Tools Lambda function ARN
+    Value: !GetAtt EmergencyToolsFunction.Arn
+
+  ClinicFunctionArn:
+    Description: Clinic Management Lambda function ARN
+    Value: !GetAtt ClinicFunction.Arn
+
+  SearchFunctionArn:
+    Description: Search Lambda function ARN
+    Value: !GetAtt SearchFunction.Arn
