@@ -28,7 +28,7 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 }
 
 function getFlyerBucket(): string {
-  return process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+  return process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
 }
 const SIGNED_URL_EXPIRES_IN = 3600 // 1 hour
 
