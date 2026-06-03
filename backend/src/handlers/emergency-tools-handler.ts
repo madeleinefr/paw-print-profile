@@ -22,10 +22,13 @@ import { FlyerGenerationService } from '../services/flyer-generation-service'
 import { PhotoGuidanceService } from '../services/photo-guidance-service'
 import { AuthService, AuthUser } from '../services/auth-service'
 import { AuthorizationService } from '../services/authorization-service'
+import { extractUserFromIdToken } from '../services/token-utils'
 import { PetRepository } from '../repositories/pet-repository'
 import { ClinicRepository } from '../repositories/clinic-repository'
 import { ImageRepository } from '../repositories/image-repository'
 import { ErrorHandler } from '../errors/index'
+
+import { NotificationService } from '../services/notification-service'
 
 const careSnapshotService = new CareSnapshotService()
 const emergencyToolsService = new EmergencyToolsService()
@@ -66,6 +69,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           return await handleReportMissing(event, user)
         } else if (path.includes('/care-snapshot')) {
           return await handleCreateCareSnapshot(event, user)
+        } else if (path.includes('/contact')) {
+          return await handleContactOwner(event) // Public — no auth required
         }
         return respond(404, { error: { code: 'NOT_FOUND', message: 'Endpoint not found' } })
 
@@ -101,6 +106,8 @@ async function extractUser(event: APIGatewayProxyEvent): Promise<AuthUser | null
     const token = authHeader.slice(7)
     const user = await authService.getCurrentUser(token)
     if (user) return user
+    const idUser = extractUserFromIdToken(token)
+    if (idUser) return idUser
   }
 
   const userType = event.headers?.['x-user-type']
@@ -316,3 +323,54 @@ async function handlePhotoGuidance(
 
 // ── Error Handler ────────────────────────────────────────────────────────────
 // Centralized via ErrorHandler.toResponse() in the catch block above.
+
+/**
+ * POST /pets/{petId}/contact — Send anonymous message to pet owner (Public)
+ * Accepts senderName, senderEmail, message. Looks up owner email from pet record
+ * and sends via NotificationService without exposing owner PII to sender.
+ * Requirements: [FR-15]
+ */
+async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const petId = event.pathParameters?.petId
+  if (!petId) return badRequest('INVALID_INPUT', 'petId is required')
+
+  const body = event.body ? JSON.parse(event.body) : {}
+  const { senderName, senderEmail, message } = body
+
+  if (!senderName || !senderEmail || !message) {
+    return badRequest('INVALID_INPUT', 'senderName, senderEmail, and message are required')
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(senderEmail)) {
+    return badRequest('INVALID_INPUT', 'Invalid email format')
+  }
+
+  if (message.length > 1000) {
+    return badRequest('INVALID_INPUT', 'Message must be 1000 characters or less')
+  }
+
+  const pet = await petRepo.findById(petId)
+  if (!pet) return respond(404, { error: { code: 'NOT_FOUND', message: 'Pet not found' } })
+  if (!pet.ownerEmail) return badRequest('NO_OWNER', 'This pet does not have an owner to contact')
+
+  const notificationService = new NotificationService()
+
+  if (process.env.IS_LOCAL === 'true') {
+    console.log('📧 Platform message (local dev):')
+    console.log(`  To: ${pet.ownerEmail}`)
+    console.log(`  From: ${senderName} <${senderEmail}>`)
+    console.log(`  Pet: ${pet.name}`)
+    console.log(`  Message: ${message}`)
+  }
+
+  await notificationService.sendContactMessage({
+    petName: pet.name,
+    ownerEmail: pet.ownerEmail,
+    senderName,
+    senderEmail,
+    message,
+  })
+
+  return respond(200, { success: true, message: 'Message sent to pet owner' })
+}
