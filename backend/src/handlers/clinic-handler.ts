@@ -10,6 +10,7 @@ import { ClinicService } from '../services/clinic-service'
 import { ProfileClaimingService } from '../services/profile-claiming-service'
 import { AuthService, AuthUser } from '../services/auth-service'
 import { AuthorizationService } from '../services/authorization-service'
+import { extractUserFromIdToken } from '../services/token-utils'
 import { ErrorHandler } from '../errors/index'
 
 const clinicService = new ClinicService()
@@ -287,6 +288,8 @@ async function extractClinicUser(event: APIGatewayProxyEvent): Promise<AuthUser 
     const token = authHeader.slice(7)
     const user = await authService.getCurrentUser(token)
     if (user) return user
+    const idUser = extractUserFromIdToken(token)
+    if (idUser) return idUser
   }
 
   const userType = event.headers?.['x-user-type']

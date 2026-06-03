@@ -19,6 +19,7 @@ import { PetCoOnboardingService } from '../services/pet-co-onboarding-service'
 import { ProfileClaimingService } from '../services/profile-claiming-service'
 import { AuthService, AuthUser } from '../services/auth-service'
 import { AuthorizationService } from '../services/authorization-service'
+import { extractUserFromIdToken } from '../services/token-utils'
 import { PetRepository } from '../repositories/pet-repository'
 import { ErrorHandler } from '../errors/index'
 
@@ -71,10 +72,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
 
       case 'GET':
-        if (event.pathParameters?.petId) {
-          return await handleGetPet(event, user)
-        } else if (path.includes('/pending-claims')) {
+        if (path.includes('/pending-claims') || event.pathParameters?.petId === 'pending-claims') {
           return await handleGetPendingClaims(event, user)
+        } else if (event.pathParameters?.petId) {
+          return await handleGetPet(event, user)
         } else {
           return await handleListPets(event, user)
         }
@@ -114,8 +115,12 @@ async function extractUser(event: APIGatewayProxyEvent): Promise<AuthUser | null
   const authHeader = event.headers?.Authorization || event.headers?.authorization
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7)
+    // Try access token via Cognito GetUser (works locally with LocalAuthService)
     const user = await authService.getCurrentUser(token)
     if (user) return user
+    // Try decoding as idToken (production: API Gateway already validated it)
+    const idUser = extractUserFromIdToken(token)
+    if (idUser) return idUser
   }
 
   // Fallback to header-based auth for local development

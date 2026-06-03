@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update the API client with the new token
       const stored = getStoredAuth()
       if (stored) {
-        setAuth(tokens.accessToken, stored.userType, stored.userId, stored.clinicId)
+        setAuth(tokens.idToken, stored.userType, stored.userId, stored.clinicId)
       }
       return true
     } catch {
@@ -144,8 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Set API client auth headers
-      setAuth(stored.accessToken, stored.userType, stored.userId, stored.clinicId)
+      // Set API client auth headers — use idToken for Cognito authorizer
+      setAuth(stored.idToken, stored.userType, stored.userId, stored.clinicId)
 
       setAuthState({
         isAuthenticated: true,
@@ -201,8 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clinicId: user.clinicId,
     })
 
-    // Set API client auth
-    setAuth(tokens.accessToken, user.userType as UserType, user.userId, user.clinicId)
+    // Set API client auth — use idToken for API Gateway Cognito authorizer
+    setAuth(tokens.idToken, user.userType as UserType, user.userId, user.clinicId)
 
     // Update state
     setAuthState({
