@@ -200,30 +200,30 @@ async function seed() {
   const whiskers = await petRepo.createMedicalProfile({
     name: 'Minka',
     species: 'Cat',
-    breed: 'Maine Coon',
+    breed: 'Domestic Shorthair',
     age: 4,
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
-  console.log(`  ✓ Minka (Maine Coon, 4y) — Pending Claim (code: ${whiskers.claimingCode})`)
+  console.log(`  ✓ Minka (Domestic Shorthair, 4y) — Pending Claim (code: ${whiskers.claimingCode})`)
 
   // Pet 5: Pending Claim
   const charlie = await petRepo.createMedicalProfile({
-    name: 'Fritz',
+    name: 'Olive',
     species: 'Dog',
-    breed: 'Beagle',
+    breed: 'Ridgeback',
     age: 1,
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
-  console.log(`  ✓ Fritz (Beagle, 1y) — Pending Claim (code: ${charlie.claimingCode})`)
+  console.log(`  ✓ Olive (Ridgeback, 1y) — Pending Claim (code: ${charlie.claimingCode})`)
 
   // Pet 6: Claimed + Active (owned by owner-1)
   const bella = await petRepo.createMedicalProfile({
-    name: 'Bella',
+    name: 'Susi',
     species: 'Dog',
-    breed: 'Labrador Retriever',
-    age: 7,
+    breed: 'English Setter/Labrador Mix',
+    age: 0,
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
@@ -239,13 +239,13 @@ async function seed() {
     ownerZipCode: '80802',
     ownerCity: 'München',
   })
-  console.log(`  ✓ Bella (Labrador, 7y) — Active, owned by ${OWNER_ID}`)
+  console.log(`  ✓ Susi (English Setter/Labrador Mix, 4 months) — Active, owned by ${OWNER_ID}`)
 
   // Pet 7: Claimed + Active (owned by owner-1) — Cat
   const simba = await petRepo.createMedicalProfile({
-    name: 'Simba',
+    name: 'Timmi',
     species: 'Cat',
-    breed: 'British Shorthair',
+    breed: 'Domestic Shorthair',
     age: 6,
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
@@ -262,7 +262,7 @@ async function seed() {
     ownerZipCode: '80802',
     ownerCity: 'München',
   })
-  console.log(`  ✓ Simba (British Shorthair, 6y) — Active, owned by ${OWNER_ID}`)
+  console.log(`  ✓ Timmi (Domestic Shorthair, 6y) — Active, owned by ${OWNER_ID}`)
 
   // Pet 8: Claimed + Missing (owned by owner-1) — another missing Cat
   const nala = await petRepo.createMedicalProfile({
@@ -290,14 +290,14 @@ async function seed() {
 
   // Pet 9: Pending Claim — Dog
   const rocky = await petRepo.createMedicalProfile({
-    name: 'Rocky',
+    name: 'Askari',
     species: 'Dog',
-    breed: 'Rottweiler',
+    breed: 'Australian Shepherd',
     age: 2,
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
-  console.log(`  ✓ Rocky (Rottweiler, 2y) — Pending Claim (code: ${rocky.claimingCode})`)
+  console.log(`  ✓ Askari (Australian Shepherd, 2y) — Pending Claim (code: ${rocky.claimingCode})`)
 
   // Pet 10: Claimed + Active (owned by owner-1) — Dog
   const lotte = await petRepo.createMedicalProfile({
@@ -375,7 +375,7 @@ async function seed() {
     recoveryInfo: 'Weichfutter für 5 Tage, Antibiotika für 7 Tage',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Bella: Tollwut + Leptospirose Impfungen, Zahnreinigung')
+  console.log('  ✓ Susi: Tollwut + Leptospirose Impfungen, Zahnreinigung')
 
   await petRepo.addVaccine(simba.petId, {
     vaccineName: 'RCP (Katzenschnupfen, Katzenseuche)',
@@ -389,7 +389,7 @@ async function seed() {
     nextDueDate: '2025-03-10',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Simba: RCP + FeLV Impfungen')
+  console.log('  ✓ Timmi: RCP + FeLV Impfungen')
 
   await petRepo.addVaccine(lotte.petId, {
     vaccineName: 'Tollwut',
@@ -413,23 +413,23 @@ async function seed() {
   console.log(`  Tierarzt: ${VET_EMAIL} / ${VET_PASSWORD}`)
   console.log(`  Besitzer: ${OWNER_EMAIL} / ${OWNER_PASSWORD}\n`)
   console.log('Pets:')
-  console.log(`  Balu   (Golden Retriever)       — Active`)
-  console.log(`  Luna   (Siamese)                — MISSING ← visible in public search`)
-  console.log(`  Rex    (German Shepherd)         — MISSING ← visible in public search`)
-  console.log(`  Minka  (Maine Coon)              — Pending Claim (code: ${whiskers.claimingCode})`)
-  console.log(`  Fritz  (Beagle)                  — Pending Claim (code: ${charlie.claimingCode})`)
-  console.log(`  Bella  (Labrador)                — Active`)
-  console.log(`  Simba  (British Shorthair)       — Active`)
-  console.log(`  Nala   (Persian)                 — MISSING ← visible in public search`)
-  console.log(`  Rocky  (Rottweiler)              — Pending Claim (code: ${rocky.claimingCode})`)
-  console.log(`  Lotte  (Dachshund)               — Active`)
+  console.log(`  Balu   (Golden Retriever)            — Active`)
+  console.log(`  Luna   (Siamese)                     — MISSING ← visible in public search`)
+  console.log(`  Rex    (German Shepherd)              — MISSING ← visible in public search`)
+  console.log(`  Minka  (Domestic Shorthair)           — Pending Claim (code: ${whiskers.claimingCode})`)
+  console.log(`  Olive  (Ridgeback)                    — Pending Claim (code: ${charlie.claimingCode})`)
+  console.log(`  Susi   (English Setter/Labrador Mix)  — Active`)
+  console.log(`  Timmi  (Domestic Shorthair)           — Active`)
+  console.log(`  Nala   (Persian)                      — MISSING ← visible in public search`)
+  console.log(`  Askari (Australian Shepherd)          — Pending Claim (code: ${rocky.claimingCode})`)
+  console.log(`  Lotte  (Dachshund)                    — Active`)
   console.log('\nPublic Search:')
   console.log('  Search for "Cat" or "Dog" to see missing pets.')
   console.log('  Luna, Rex, and Nala will appear in results.\n')
   console.log('Claiming:')
   console.log(`  Use code "${whiskers.claimingCode}" to claim Minka`)
-  console.log(`  Use code "${charlie.claimingCode}" to claim Fritz`)
-  console.log(`  Use code "${rocky.claimingCode}" to claim Rocky`)
+  console.log(`  Use code "${charlie.claimingCode}" to claim Olive`)
+  console.log(`  Use code "${rocky.claimingCode}" to claim Askari`)
   console.log('═'.repeat(60))
 }
 

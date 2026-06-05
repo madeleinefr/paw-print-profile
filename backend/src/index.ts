@@ -12,13 +12,10 @@ import { handler as coOnboardingHandler } from './handlers/pet-co-onboarding-han
 import { handler as clinicHandler } from './handlers/clinic-handler'
 import { handler as searchHandler } from './handlers/search-handler'
 import { handler as emergencyToolsHandler } from './handlers/emergency-tools-handler'
-import { AuthService, AuthError } from './services/auth-service'
-import { LocalAuthService } from './services/local-auth-service'
+import { handler as authHandler } from './handlers/auth-handler'
 
 import { AWSClientFactory } from './infrastructure/aws-client-factory'
 import { CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
-import { PetRepository } from './repositories/pet-repository'
-import { NotificationService } from './services/notification-service'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -69,171 +66,16 @@ app.get('/health', (_req, res) => {
   })
 })
 
-// ── Auth routes ───────────────────────────────────────────────────────────────
+// ── Auth routes (delegated to auth-handler) ───────────────────────────────────
 
-// Use LocalAuthService (DynamoDB-backed) in local dev where Cognito is unavailable.
-// In production, use the real Cognito-based AuthService.
-const isLocal = process.env.IS_LOCAL === 'true'
-const authService = isLocal ? new LocalAuthService() : new AuthService()
-
-if (isLocal) {
-  console.log('🔑 Using LocalAuthService (DynamoDB-backed) — Cognito not available on LocalStack free tier')
-}
-
-app.post('/auth/signup', async (req: Request, res: Response) => {
-  try {
-    const { email, password, userType, clinicId } = req.body
-    const user = await authService.signUp({ email, password, userType, clinicId })
-    res.status(201).json(user)
-  } catch (err: any) {
-    if (err instanceof AuthError) {
-      const status = err.code === 'INVALID_INPUT' ? 400 : 500
-      res.status(status).json({ error: { code: err.code, message: err.message } })
-    } else {
-      res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Sign-up failed' } })
-    }
-  }
-})
-
-app.post('/auth/signin', async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body
-    const tokens = await authService.signIn(email, password)
-    res.json(tokens)
-  } catch (err: any) {
-    if (err instanceof AuthError) {
-      const status = err.code === 'INVALID_CREDENTIALS' || err.code === 'USER_NOT_FOUND' ? 401 : 400
-      res.status(status).json({ error: { code: err.code, message: err.message } })
-    } else {
-      res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Sign-in failed' } })
-    }
-  }
-})
-
-app.post('/auth/refresh', async (req: Request, res: Response) => {
-  try {
-    const { refreshToken } = req.body
-    const tokens = await authService.refreshToken(refreshToken)
-    res.json(tokens)
-  } catch (err: any) {
-    if (err instanceof AuthError) {
-      res.status(401).json({ error: { code: err.code, message: err.message } })
-    } else {
-      res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Token refresh failed' } })
-    }
-  }
-})
-
-app.get('/auth/me', async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers.authorization
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) {
-      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
-      return
-    }
-    const user = await authService.getCurrentUser(token)
-    if (!user) {
-      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
-      return
-    }
-    res.json(user)
-  } catch (err: any) {
-    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to get user' } })
-  }
-})
-
-app.post('/auth/signout', async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers.authorization
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (token) {
-      await authService.signOut(token)
-    }
-    res.status(204).send()
-  } catch {
-    res.status(204).send()
-  }
-})
-
-app.post('/auth/associate-clinic', async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers.authorization
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) {
-      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
-      return
-    }
-    const user = await authService.getCurrentUser(token)
-    if (!user) {
-      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
-      return
-    }
-    const { clinicId } = req.body
-    if (!clinicId) {
-      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'clinicId is required' } })
-      return
-    }
-    // Update the user's clinicId in the local auth store
-    if (isLocal && 'associateClinic' in authService) {
-      await (authService as any).associateClinic(user.userId, clinicId)
-    }
-    res.json({ success: true, clinicId })
-  } catch (err: any) {
-    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to associate clinic' } })
-  }
-})
-
-// ── Account profile routes ────────────────────────────────────────────────────
-
-app.get('/account/profile', async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers.authorization
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) {
-      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
-      return
-    }
-    const user = await authService.getCurrentUser(token)
-    if (!user) {
-      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
-      return
-    }
-    if ('getProfile' in authService) {
-      const profile = await (authService as any).getProfile(user.userId)
-      res.json(profile || { ownerName: '', ownerEmail: user.email, ownerPhone: '', ownerStreet: '', ownerHouseNumber: '', ownerZipCode: '', ownerCity: '' })
-    } else {
-      res.json({ ownerName: '', ownerEmail: user.email, ownerPhone: '', ownerStreet: '', ownerHouseNumber: '', ownerZipCode: '', ownerCity: '' })
-    }
-  } catch (err: any) {
-    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to get profile' } })
-  }
-})
-
-app.put('/account/profile', async (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers.authorization
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-    if (!token) {
-      res.status(401).json({ error: { code: 'NO_TOKEN', message: 'No access token provided' } })
-      return
-    }
-    const user = await authService.getCurrentUser(token)
-    if (!user) {
-      res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } })
-      return
-    }
-    const { ownerName, ownerPhone, ownerStreet, ownerHouseNumber, ownerZipCode, ownerCity } = req.body
-    if ('updateProfile' in authService) {
-      await (authService as any).updateProfile(user.userId, {
-        ownerName, ownerPhone, ownerStreet, ownerHouseNumber, ownerZipCode, ownerCity,
-      })
-    }
-    res.json({ success: true })
-  } catch (err: any) {
-    res.status(500).json({ error: { code: 'INTERNAL', message: err.message || 'Failed to update profile' } })
-  }
-})
+app.post('/auth/signup', wrap(authHandler))
+app.post('/auth/signin', wrap(authHandler))
+app.post('/auth/refresh', wrap(authHandler))
+app.get('/auth/me', wrap(authHandler))
+app.post('/auth/signout', wrap(authHandler))
+app.post('/auth/associate-clinic', wrap(authHandler))
+app.get('/account/profile', wrap(authHandler))
+app.put('/account/profile', wrap(authHandler))
 
 // ── Pet co-onboarding routes ──────────────────────────────────────────────────
 
@@ -258,6 +100,7 @@ app.put('/pets/:petId/found', wrap(emergencyToolsHandler))
 app.get('/pets/:petId/flyer', wrap(emergencyToolsHandler))
 app.get('/pets/:petId/photo-guidance', wrap(emergencyToolsHandler))
 app.post('/pets/:petId/care-snapshot', wrap(emergencyToolsHandler))
+app.post('/pets/:petId/contact', wrap(emergencyToolsHandler))
 app.get('/care-snapshots/:accessCode', wrap(emergencyToolsHandler))
 
 // ── Clinic routes ─────────────────────────────────────────────────────────────
@@ -275,74 +118,6 @@ app.get('/clinics', wrap(clinicHandler))
 // ── Search routes ─────────────────────────────────────────────────────────────
 
 app.get('/search/pets', wrap(searchHandler))
-
-// ── Platform messaging (public, no auth required) ─────────────────────────────
-
-app.post('/pets/:petId/contact', async (req: Request, res: Response) => {
-  try {
-    const { petId } = req.params
-    const { senderName, senderEmail, message } = req.body
-
-    // Validate required fields
-    if (!senderName || !senderEmail || !message) {
-      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'senderName, senderEmail, and message are required' } })
-      return
-    }
-
-    // Validate senderEmail format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(senderEmail)) {
-      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'Invalid email format' } })
-      return
-    }
-
-    // Validate message length
-    if (message.length > 1000) {
-      res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'Message must be 1000 characters or less' } })
-      return
-    }
-
-    // Look up the pet to get the owner's email
-    const petRepository = new PetRepository()
-    const pet = await petRepository.findById(petId)
-
-    if (!pet) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Pet not found' } })
-      return
-    }
-
-    if (!pet.ownerEmail) {
-      res.status(400).json({ error: { code: 'NO_OWNER', message: 'This pet does not have an owner to contact' } })
-      return
-    }
-
-    // Send the message via NotificationService (SNS publish)
-    const notificationService = new NotificationService()
-
-    // In local dev, log the message content for debugging
-    if (process.env.IS_LOCAL === 'true') {
-      console.log('📧 Platform message (local dev):')
-      console.log(`  To: ${pet.ownerEmail}`)
-      console.log(`  From: ${senderName} <${senderEmail}>`)
-      console.log(`  Pet: ${pet.name}`)
-      console.log(`  Message: ${message}`)
-    }
-
-    await notificationService.sendContactMessage({
-      petName: pet.name,
-      ownerEmail: pet.ownerEmail,
-      senderName,
-      senderEmail,
-      message,
-    })
-
-    // Return success without exposing any owner PII
-    res.json({ success: true, message: 'Message sent to pet owner' })
-  } catch (err: any) {
-    console.error('Failed to send contact message:', err)
-    res.status(500).json({ error: { code: 'INTERNAL', message: 'Failed to send message' } })
-  }
-})
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

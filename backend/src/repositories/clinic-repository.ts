@@ -27,7 +27,7 @@ export class ClinicRepository {
   private docClient: DynamoDBDocumentClient
   private tableName: string
 
-  constructor(tableName: string = 'VetPetRegistry') {
+  constructor(tableName: string = process.env.DYNAMODB_TABLE || 'VetPetRegistry') {
     const factory = new AWSClientFactory()
     const dynamoClient = factory.createDynamoDBClient()
     this.docClient = DynamoDBDocumentClient.from(dynamoClient)

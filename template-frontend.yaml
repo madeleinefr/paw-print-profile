@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Paw Print Profile - Frontend Hosting
+  S3 bucket + CloudFront distribution for the React web application.
+  Deploy separately from the backend stack to avoid CloudFront redeployment
+  on every Lambda code change.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+  BackendApiUrl:
+    Type: String
+    Description: >
+      API Gateway URL from the backend stack output (ApiUrl).
+      Used to configure the frontend at build time.
+    Default: ''
+
+Resources:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # S3 Bucket - Frontend Static Files
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'paw-print-profile-frontend-${AWS::AccountId}-${Environment}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Block all public access — CloudFront uses OAC to access the bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Bucket policy allowing CloudFront OAC to read objects
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CloudFront - CDN with HTTPS
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  # Origin Access Control — allows CloudFront to access the private S3 bucket
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'PawPrintProfile-OAC-${Environment}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'Paw Print Profile Frontend - ${Environment}'
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100  # US, Canada, Europe only (cheapest)
+
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized (AWS managed)
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+
+        # React Router — return index.html for all 404s (client-side routing)
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Outputs
+# ─────────────────────────────────────────────────────────────────────────────
+
+Outputs:
+  FrontendUrl:
+    Description: CloudFront URL for the frontend application
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+
+  FrontendBucketName:
+    Description: S3 bucket name for frontend files (use with aws s3 sync)
+    Value: !Ref FrontendBucket
+
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID (use for cache invalidation)
+    Value: !Ref CloudFrontDistribution

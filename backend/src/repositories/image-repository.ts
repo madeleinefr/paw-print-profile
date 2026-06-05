@@ -23,7 +23,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { PetImage, UploadImageInput } from '../models/entities'
 import { AWSClientFactory } from '../infrastructure/aws-client-factory'
 
-const BUCKET_NAME = process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+const BUCKET_NAME = process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
 const SIGNED_URL_EXPIRES_IN = 3600 // 1 hour
 
 function mimeTypeToExt(mimeType: string): string {
@@ -44,7 +44,7 @@ export class ImageRepository {
   private docClient: DynamoDBDocumentClient
   private tableName: string
 
-  constructor(tableName: string = 'VetPetRegistry') {
+  constructor(tableName: string = process.env.DYNAMODB_TABLE || 'VetPetRegistry') {
     const factory = new AWSClientFactory()
     this.s3Client = factory.createS3Client()
     const dynamoClient = factory.createDynamoDBClient()

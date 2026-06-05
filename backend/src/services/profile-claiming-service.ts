@@ -73,7 +73,7 @@ export class ProfileClaimingService {
   private docClient: DynamoDBDocumentClient
   private tableName: string
 
-  constructor(tableName: string = 'VetPetRegistry') {
+  constructor(tableName: string = process.env.DYNAMODB_TABLE || 'VetPetRegistry') {
     this.petRepo = new PetRepository(tableName)
     this.clinicRepo = new ClinicRepository(tableName)
     this.tableName = tableName
