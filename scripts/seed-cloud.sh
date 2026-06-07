@@ -140,10 +140,23 @@ else
     --region "$REGION" 2>/dev/null
   echo "  ✓ Cognito clinicId attribute updated"
   
+  # Small delay to ensure Cognito propagates the attribute
+  sleep 2
+  
   # Re-sign in to get updated token with clinicId
   VET_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$VET_EMAIL\",\"password\":\"$VET_PASSWORD\"}")
   VET_TOKEN=$(echo "$VET_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
-  echo "  ✓ Vet re-signed in with clinicId"
+  
+  # Verify the token has clinicId
+  echo "$VET_TOKEN" | python3 -c "
+import sys, base64, json
+token = sys.stdin.read().strip()
+payload = token.split('.')[1]
+payload += '=' * (4 - len(payload) % 4)
+data = json.loads(base64.urlsafe_b64decode(payload))
+cid = data.get('custom:clinicId', 'MISSING')
+print(f'  ✓ Vet re-signed in (clinicId in token: {cid})')
+" 2>/dev/null || echo "  ✓ Vet re-signed in with clinicId"
 fi
 
 # ── 3. Create pets ─────────────────────────────────────────────────────────
@@ -151,20 +164,41 @@ fi
 echo ""
 echo "🐾 Creating pet profiles..."
 
+# Verify vet token works by creating a test pet
+TEST_RESULT=$(api_post "/pets" '{"name":"_test","species":"Dog","breed":"Test","age":1}' "$VET_TOKEN")
+TEST_ID=$(echo "$TEST_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
+if [ -z "$TEST_ID" ]; then
+  echo "  ❌ Vet token not working for pet creation. Response: $(echo $TEST_RESULT | head -c 200)"
+  echo "  Token (first 50 chars): ${VET_TOKEN:0:50}..."
+  exit 1
+fi
+echo "  ✓ Vet token verified (test pet created, will be overwritten)"
+
 create_pet() {
   local name=$1 species=$2 breed=$3 age=$4
   local result=$(api_post "/pets" "{\"name\":\"$name\",\"species\":\"$species\",\"breed\":\"$breed\",\"age\":$age}" "$VET_TOKEN")
   local petId=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
   local code=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('claimingCode',''))" 2>/dev/null)
   if [ -z "$petId" ]; then
-    echo "    ⚠ Failed to create $name. Response: $result" >&2
+    echo "    ⚠ Failed to create $name. Response: $(echo $result | head -c 200)" >&2
+  fi
+  if [ -z "$code" ]; then
+    echo "    ⚠ No claiming code returned for $name" >&2
   fi
   echo "$petId:$code"
 }
 
 claim_pet() {
   local code=$1
-  api_post "/pets/claim" "{\"claimingCode\":\"$code\"}" "$OWNER_TOKEN" > /dev/null
+  if [ -z "$code" ]; then
+    echo "    ⚠ No claiming code provided, skipping claim" >&2
+    return
+  fi
+  local result=$(api_post "/pets/claim" "{\"claimingCode\":\"$code\",\"ownerName\":\"Anna Mueller\",\"ownerEmail\":\"anna.mueller@beispiel.de\",\"ownerPhone\":\"+49-176-12345678\"}" "$OWNER_TOKEN")
+  local status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('profileStatus','FAILED'))" 2>/dev/null)
+  if [ "$status" != "Active" ]; then
+    echo "    ⚠ Claim failed: $result" >&2
+  fi
 }
 
 upload_image() {
@@ -206,49 +240,49 @@ if filepath != '$filepath':
 }
 
 # Balu — Active
-IFS=: read BALU_ID BALU_CODE <<< $(create_pet "Balu" "Dog" "Golden Retriever" 3)
+IFS=: read BALU_ID BALU_CODE <<< "$(create_pet "Balu" "Dog" "Golden Retriever" 3)"
 claim_pet "$BALU_CODE"
 echo "  ✓ Balu (Golden Retriever) — Active"
 
 # Luna — Missing
-IFS=: read LUNA_ID LUNA_CODE <<< $(create_pet "Luna" "Cat" "Siamese" 2)
+IFS=: read LUNA_ID LUNA_CODE <<< "$(create_pet "Luna" "Cat" "Siamese" 2)"
 claim_pet "$LUNA_CODE"
 echo "  ✓ Luna (Siamese) — will be Missing"
 
 # Rex — Missing
-IFS=: read REX_ID REX_CODE <<< $(create_pet "Rex" "Dog" "German Shepherd" 5)
+IFS=: read REX_ID REX_CODE <<< "$(create_pet "Rex" "Dog" "German Shepherd" 5)"
 claim_pet "$REX_CODE"
 echo "  ✓ Rex (German Shepherd) — will be Missing"
 
 # Minka — Pending Claim
-IFS=: read MINKA_ID MINKA_CODE <<< $(create_pet "Minka" "Cat" "Domestic Shorthair" 4)
+IFS=: read MINKA_ID MINKA_CODE <<< "$(create_pet "Minka" "Cat" "Domestic Shorthair" 4)"
 echo "  ✓ Minka (Domestic Shorthair) — Pending Claim (code: $MINKA_CODE)"
 
 # Olive — Pending Claim
-IFS=: read OLIVE_ID OLIVE_CODE <<< $(create_pet "Olive" "Dog" "Ridgeback" 1)
+IFS=: read OLIVE_ID OLIVE_CODE <<< "$(create_pet "Olive" "Dog" "Ridgeback" 1)"
 echo "  ✓ Olive (Ridgeback) — Pending Claim (code: $OLIVE_CODE)"
 
 # Susi — Active
-IFS=: read SUSI_ID SUSI_CODE <<< $(create_pet "Susi" "Dog" "English Setter/Labrador Mix" 0)
+IFS=: read SUSI_ID SUSI_CODE <<< "$(create_pet "Susi" "Dog" "English Setter/Labrador Mix" 0)"
 claim_pet "$SUSI_CODE"
 echo "  ✓ Susi (English Setter/Labrador Mix) — Active"
 
 # Timmi — Active
-IFS=: read TIMMI_ID TIMMI_CODE <<< $(create_pet "Timmi" "Cat" "Domestic Shorthair" 6)
+IFS=: read TIMMI_ID TIMMI_CODE <<< "$(create_pet "Timmi" "Cat" "Domestic Shorthair" 6)"
 claim_pet "$TIMMI_CODE"
 echo "  ✓ Timmi (Domestic Shorthair) — Active"
 
 # Nala — Missing
-IFS=: read NALA_ID NALA_CODE <<< $(create_pet "Nala" "Cat" "Persian" 3)
+IFS=: read NALA_ID NALA_CODE <<< "$(create_pet "Nala" "Cat" "Persian" 3)"
 claim_pet "$NALA_CODE"
 echo "  ✓ Nala (Persian) — will be Missing"
 
 # Askari — Pending Claim
-IFS=: read ASKARI_ID ASKARI_CODE <<< $(create_pet "Askari" "Dog" "Australian Shepherd" 2)
+IFS=: read ASKARI_ID ASKARI_CODE <<< "$(create_pet "Askari" "Dog" "Australian Shepherd" 2)"
 echo "  ✓ Askari (Australian Shepherd) — Pending Claim (code: $ASKARI_CODE)"
 
 # Lotte — Active
-IFS=: read LOTTE_ID LOTTE_CODE <<< $(create_pet "Lotte" "Dog" "Dachshund" 9)
+IFS=: read LOTTE_ID LOTTE_CODE <<< "$(create_pet "Lotte" "Dog" "Dachshund" 9)"
 claim_pet "$LOTTE_CODE"
 echo "  ✓ Lotte (Dachshund) — Active"
 
