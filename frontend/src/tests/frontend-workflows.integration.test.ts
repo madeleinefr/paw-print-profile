@@ -733,7 +733,7 @@ describe('Frontend Workflow Integration Tests', () => {
               { title: 'Full Body Shots', description: 'Include full-body photos showing overall size.' },
             ],
             requirements: {
-              formats: ['JPEG', 'PNG', 'WebP'],
+              formats: ['JPEG', 'PNG'],
               maxSize: '10 MB',
               recommendedResolution: '1920x1080 or higher',
             },
@@ -748,7 +748,6 @@ describe('Frontend Workflow Integration Tests', () => {
       expect(result.guidelines.tips[0].title).toBe('Lighting')
       expect(result.guidelines.requirements.formats).toContain('JPEG')
       expect(result.guidelines.requirements.formats).toContain('PNG')
-      expect(result.guidelines.requirements.formats).toContain('WebP')
       expect(result.guidelines.requirements.maxSize).toBe('10 MB')
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -774,7 +773,7 @@ describe('Frontend Workflow Integration Tests', () => {
               { title: 'Full Body Shots', description: 'Include full-body photos showing your pet\'s overall size and shape.' },
             ],
             requirements: {
-              formats: ['JPEG', 'PNG', 'WebP'],
+              formats: ['JPEG', 'PNG'],
               maxSize: '10 MB',
               recommendedResolution: '1920x1080 or higher',
             },

@@ -362,6 +362,17 @@ Resources:
             Headers:
               Access-Control-Allow-Origin: "'*'"
               Access-Control-Allow-Headers: "'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id'"
+        REQUEST_TOO_LARGE:
+          StatusCode: 413
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization,x-user-type,x-user-id,x-clinic-id'"
       Auth:
         DefaultAuthorizer: CognitoAuthorizer
         Authorizers:
@@ -462,6 +473,12 @@ Resources:
             RestApiId: !Ref PawPrintApi
             Path: /pets/{petId}/images
             Method: POST
+        GetUploadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/images/upload-url
+            Method: POST
 
   # Profile Claiming Function
   # Handles: POST /claiming-codes/validate, POST /profiles/{petId}/transfer,
@@ -526,6 +543,8 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - src/handlers/emergency-tools-handler.ts
+        External:
+          - pdfkit
     Properties:
       FunctionName: !Sub 'PawPrint-EmergencyTools-${Environment}'
       CodeUri: backend/

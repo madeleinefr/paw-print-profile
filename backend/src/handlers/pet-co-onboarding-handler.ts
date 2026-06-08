@@ -65,6 +65,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           return await handleAddVaccine(event, user)
         } else if (path.includes('/surgeries')) {
           return await handleAddSurgery(event, user)
+        } else if (path.includes('/images/upload-url')) {
+          return await handleGetUploadUrl(event, user)
         } else if (path.includes('/images')) {
           return await handleUploadImage(event, user)
         } else {
@@ -348,6 +350,34 @@ async function handleUploadImage(
 
   const image = await coOnboardingService.uploadImage(petId, user.userId, user.userType as 'vet' | 'owner', event.body)
   return respond(201, image)
+}
+
+/**
+ * POST /pets/{petId}/images/upload-url — Get pre-signed S3 URL for direct upload
+ * Bypasses API Gateway 10MB payload limit by uploading directly to S3.
+ */
+async function handleGetUploadUrl(
+  event: APIGatewayProxyEvent,
+  user: AuthUser | null
+): Promise<APIGatewayProxyResult> {
+  if (!user) return unauthorized()
+
+  const petId = event.pathParameters?.petId
+  if (!petId) return badRequest('MISSING_PET_ID', 'Pet ID is required')
+  if (!event.body) return badRequest('MISSING_BODY', 'Request body is required')
+
+  const pet = await petRepo.findById(petId)
+  const authz = authzService.canAccessPet(user, pet)
+  if (!authz.allowed) return forbidden(authz.reason!)
+
+  const { mimeType, tags } = JSON.parse(event.body)
+  if (!mimeType) return badRequest('MISSING_MIME_TYPE', 'mimeType is required')
+
+  const { ImageRepository } = await import('../repositories/image-repository')
+  const imageRepo = new ImageRepository()
+  const result = await imageRepo.generateUploadUrl({ petId, mimeType, tags: tags || [] })
+
+  return respond(200, { uploadUrl: result.uploadUrl, image: result.image })
 }
 
 /**
