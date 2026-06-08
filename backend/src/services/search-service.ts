@@ -140,7 +140,7 @@ export class SearchService {
       // Strip owner contact info — public users use platform messaging
       owner: undefined,
       contactMethod: 'platform_messaging' as const,
-      messageUrl: `https://app.pawprintprofile.com/contact/${result.petId}`,
+      messageUrl: `${process.env.APP_BASE_URL || 'https://app.pawprintprofile.com'}/contact/${result.petId}`,
     }))
   }
 
