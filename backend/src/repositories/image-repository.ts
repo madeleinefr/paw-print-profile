@@ -101,6 +101,49 @@ export class ImageRepository {
   }
 
   /**
+   * Generate a pre-signed S3 PUT URL for direct browser upload.
+   * Also stores the image metadata in DynamoDB immediately.
+   * The client uploads directly to S3 using the returned URL.
+   */
+  async generateUploadUrl(input: { petId: string; mimeType: string; tags: string[] }): Promise<{ uploadUrl: string; image: PetImage }> {
+    const imageId = uuidv4()
+    const ext = mimeTypeToExt(input.mimeType)
+    const s3Key = `pets/${input.petId}/${imageId}.${ext}`
+    const uploadedAt = new Date().toISOString()
+
+    // Generate pre-signed PUT URL (valid for 15 minutes)
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+      ContentType: input.mimeType,
+    })
+    const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 })
+
+    const petImage: PetImage = {
+      PK: `PET#${input.petId}`,
+      SK: `IMAGE#${imageId}`,
+      imageId,
+      s3Key,
+      s3Bucket: BUCKET_NAME,
+      url: `s3://${BUCKET_NAME}/${s3Key}`,
+      tags: input.tags,
+      uploadedAt,
+      fileSize: 0, // Will be updated after upload if needed
+      mimeType: input.mimeType,
+    }
+
+    // Store metadata in DynamoDB
+    await this.docClient.send(
+      new PutCommand({
+        TableName: this.tableName,
+        Item: petImage,
+      })
+    )
+
+    return { uploadUrl, image: petImage }
+  }
+
+  /**
    * Generate a pre-signed S3 URL for an image (expires in 1 hour)
    */
   async getUrl(imageId: string, petId: string): Promise<string> {
