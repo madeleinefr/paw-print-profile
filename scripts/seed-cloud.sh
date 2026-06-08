@@ -293,18 +293,27 @@ echo "🚨 Reporting missing pets..."
 
 report_missing() {
   local petId=$1
-  api_post "/pets/$petId/missing" '{
+  local petName=$2
+  if [ -z "$petId" ]; then
+    echo "    ⚠ No pet ID for $petName, skipping report missing" >&2
+    return
+  fi
+  local result=$(api_post "/pets/$petId/missing" '{
     "searchRadiusKm": 50,
     "lastSeenLocation": "Englischer Garten, München",
     "contactMethod": "clinic"
-  }' "$OWNER_TOKEN" > /dev/null
+  }' "$OWNER_TOKEN")
+  local flyerUrl=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('flyerUrl',''))" 2>/dev/null)
+  if [ -z "$flyerUrl" ]; then
+    echo "    ⚠ Report missing failed for $petName. Response: $(echo $result | head -c 200)" >&2
+  fi
 }
 
-report_missing "$LUNA_ID"
+report_missing "$LUNA_ID" "Luna"
 echo "  ✓ Luna reported missing"
-report_missing "$REX_ID"
+report_missing "$REX_ID" "Rex"
 echo "  ✓ Rex reported missing"
-report_missing "$NALA_ID"
+report_missing "$NALA_ID" "Nala"
 echo "  ✓ Nala reported missing"
 
 # ── 5. Update owner profile ────────────────────────────────────────────────
