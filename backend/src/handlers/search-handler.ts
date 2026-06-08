@@ -145,7 +145,7 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
       ...r,
       owner: undefined,
       contactMethod: 'platform_messaging' as const,
-      messageUrl: `https://app.pawprintprofile.com/contact/${r.petId}`,
+      messageUrl: `${process.env.APP_BASE_URL || 'https://app.pawprintprofile.com'}/contact/${r.petId}`,
     }))
   } else {
     // Public search: only missing pets, owner contact hidden [FR-11][FR-15]
@@ -200,7 +200,7 @@ async function handleGetPetDetails(event: APIGatewayProxyEvent, corsHeaders: Rec
     ...petDetails,
     owner: undefined,
     contactMethod: 'platform_messaging' as const,
-    messageUrl: `https://app.pawprintprofile.com/contact/${petDetails.petId}`,
+    messageUrl: `${process.env.APP_BASE_URL || 'https://app.pawprintprofile.com'}/contact/${petDetails.petId}`,
   }
 
   return {
