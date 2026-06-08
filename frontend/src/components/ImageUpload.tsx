@@ -3,7 +3,7 @@
  * format validation, size checking, photo guidance, and quality preview.
  *
  * Supports both vet (during profile creation) and owner (during enrichment)
- * image uploads. Validates JPEG, PNG, WebP formats with 10MB size limit.
+ * image uploads. Validates JPEG and PNG formats with 10MB size limit.
  *
  * Validates: [FR-05], [FR-16], [NFR-COMP-03]
  */
@@ -25,9 +25,9 @@ interface UploadedImage {
   uploadedAt: string
 }
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png']
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
-const ACCEPTED_EXTENSIONS = '.jpeg,.jpg,.png,.webp'
+const ACCEPTED_EXTENSIONS = '.jpeg,.jpg,.png'
 
 export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: ImageUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -43,7 +43,7 @@ export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: Im
 
   function validateFile(file: File): string | null {
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      return `Unsupported format: ${file.type.split('/')[1]?.toUpperCase() || 'unknown'}. Please use JPEG, PNG, or WebP.`
+      return `Unsupported format: ${file.type.split('/')[1]?.toUpperCase() || 'unknown'}. Please use JPEG or PNG.`
     }
     if (file.size > MAX_SIZE_BYTES) {
       return `File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB. Maximum size is 10 MB.`
@@ -110,12 +110,24 @@ export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: Im
     setSuccess(false)
 
     try {
-      const base64 = await fileToBase64(selectedFile)
-      await api.post(`/pets/${petId}/images`, {
-        imageBase64: base64,
+      const tagList = tags.split(',').map((t) => t.trim()).filter(Boolean)
+
+      // Step 1: Get pre-signed S3 upload URL from backend
+      const { uploadUrl } = await api.post<{ uploadUrl: string; image: any }>(`/pets/${petId}/images/upload-url`, {
         mimeType: selectedFile.type,
-        tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+        tags: tagList,
       })
+
+      // Step 2: Upload file directly to S3 (bypasses API Gateway 10MB limit)
+      const s3Response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': selectedFile.type },
+        body: selectedFile,
+      })
+
+      if (!s3Response.ok) {
+        throw new Error(`S3 upload failed: ${s3Response.status}`)
+      }
 
       setSuccess(true)
       setSelectedFile(null)
@@ -161,7 +173,7 @@ export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: Im
             <li><strong>Full Body:</strong> Show your pet's overall size and shape.</li>
           </ul>
           <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '8px' }}>
-            Accepted formats: JPEG, PNG, WebP · Max size: 10 MB · Recommended: 1920×1080 or higher
+            Accepted formats: JPEG, PNG · Max size: 10 MB · Recommended: 1920×1080 or higher
           </p>
         </div>
       )}
@@ -203,7 +215,7 @@ export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: Im
                 <Upload size={20} style={{ verticalAlign: 'middle', marginRight: '6px' }} />Drag & drop a photo here, or click to browse
               </p>
               <p style={{ fontSize: '0.8rem', color: '#999' }}>
-                JPEG, PNG, or WebP · Max 10 MB
+                JPEG or PNG · Max 10 MB
               </p>
             </div>
           ) : (
@@ -352,15 +364,3 @@ export function ImageGallery({ images, emptyMessage }: ImageGalleryProps) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(',')[1]) // Strip data:image/...;base64, prefix
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}

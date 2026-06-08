@@ -44,7 +44,7 @@ export interface ImageQualityFeedback {
 }
 
 export class PhotoGuidanceService {
-  private static readonly SUPPORTED_FORMATS = ['JPEG', 'PNG', 'WebP']
+  private static readonly SUPPORTED_FORMATS = ['JPEG', 'PNG']
   private static readonly MAX_SIZE_MB = 10
   private static readonly MAX_SIZE_BYTES = 10 * 1024 * 1024
   private static readonly RECOMMENDED_RESOLUTION = '1920x1080 or higher'

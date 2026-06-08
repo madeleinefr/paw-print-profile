@@ -201,12 +201,12 @@ export function validateClinicData(data: any, isUpdate: boolean = false): Valida
  */
 export function validateImageFormat(mimeType: string): ValidationError[] {
   const errors: ValidationError[] = []
-  const allowedFormats = ['image/jpeg', 'image/png', 'image/webp']
+  const allowedFormats = ['image/jpeg', 'image/png']
 
   if (!allowedFormats.includes(mimeType.toLowerCase())) {
     errors.push({
       field: 'image',
-      message: 'Image format must be JPEG, PNG, or WebP'
+      message: 'Image format must be JPEG or PNG'
     })
   }
 
