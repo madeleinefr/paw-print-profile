@@ -164,7 +164,7 @@ fi
 echo ""
 echo "🐾 Creating pet profiles..."
 
-# Verify vet token works by creating a test pet
+# Verify vet token works by creating a test pet then deleting it
 TEST_RESULT=$(api_post "/pets" '{"name":"_test","species":"Dog","breed":"Test","age":1}' "$VET_TOKEN")
 TEST_ID=$(echo "$TEST_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
 if [ -z "$TEST_ID" ]; then
@@ -172,7 +172,9 @@ if [ -z "$TEST_ID" ]; then
   echo "  Token (first 50 chars): ${VET_TOKEN:0:50}..."
   exit 1
 fi
-echo "  ✓ Vet token verified (test pet created, will be overwritten)"
+# Clean up the test pet
+curl -s -X DELETE "$API_URL/pets/$TEST_ID" -H "Authorization: Bearer $VET_TOKEN" -H "Content-Type: application/json" > /dev/null
+echo "  ✓ Vet token verified"
 
 create_pet() {
   local name=$1 species=$2 breed=$3 age=$4
@@ -286,6 +288,177 @@ IFS=: read LOTTE_ID LOTTE_CODE <<< "$(create_pet "Lotte" "Dog" "Dachshund" 9)"
 claim_pet "$LOTTE_CODE"
 echo "  ✓ Lotte (Dachshund) — Active"
 
+# ── 3b. Additional owners in different cities ──────────────────────────────
+
+echo ""
+echo "🔑 Creating additional owner accounts..."
+
+OWNER2_EMAIL="thomas.schmidt@beispiel.de"
+OWNER2_PASSWORD="Test1234!"
+OWNER3_EMAIL="lisa.wagner@beispiel.de"
+OWNER3_PASSWORD="Test1234!"
+OWNER4_EMAIL="markus.becker@beispiel.de"
+OWNER4_PASSWORD="Test1234!"
+
+api_post "/auth/signup" "{\"email\":\"$OWNER2_EMAIL\",\"password\":\"$OWNER2_PASSWORD\",\"userType\":\"owner\"}" > /dev/null 2>&1
+echo "  ✓ Owner: $OWNER2_EMAIL / $OWNER2_PASSWORD (Berlin)"
+
+api_post "/auth/signup" "{\"email\":\"$OWNER3_EMAIL\",\"password\":\"$OWNER3_PASSWORD\",\"userType\":\"owner\"}" > /dev/null 2>&1
+echo "  ✓ Owner: $OWNER3_EMAIL / $OWNER3_PASSWORD (Hamburg)"
+
+api_post "/auth/signup" "{\"email\":\"$OWNER4_EMAIL\",\"password\":\"$OWNER4_PASSWORD\",\"userType\":\"owner\"}" > /dev/null 2>&1
+echo "  ✓ Owner: $OWNER4_EMAIL / $OWNER4_PASSWORD (Köln)"
+
+# Sign in as additional owners
+OWNER2_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER2_EMAIL\",\"password\":\"$OWNER2_PASSWORD\"}")
+OWNER2_TOKEN=$(echo "$OWNER2_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
+echo "  ✓ Thomas signed in"
+
+OWNER3_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER3_EMAIL\",\"password\":\"$OWNER3_PASSWORD\"}")
+OWNER3_TOKEN=$(echo "$OWNER3_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
+echo "  ✓ Lisa signed in"
+
+OWNER4_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER4_EMAIL\",\"password\":\"$OWNER4_PASSWORD\"}")
+OWNER4_TOKEN=$(echo "$OWNER4_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
+echo "  ✓ Markus signed in"
+
+echo ""
+echo "🏥 Creating additional clinics..."
+
+# Berlin clinic
+CLINIC_BERLIN_RESULT=$(api_post "/clinics" '{
+  "name": "Tierklinik am Volkspark",
+  "address": "Schönhauser Allee 78",
+  "city": "Berlin",
+  "state": "Berlin",
+  "zipCode": "10439",
+  "phone": "+49-30-9876543",
+  "email": "info@tierklinik-volkspark.de",
+  "licenseNumber": "BE-BER-2024-002",
+  "latitude": 52.5480,
+  "longitude": 13.4130
+}' "$VET_TOKEN")
+CLINIC_BERLIN_ID=$(echo "$CLINIC_BERLIN_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
+echo "  ✓ Tierklinik am Volkspark (Berlin): $CLINIC_BERLIN_ID"
+
+# Hamburg clinic
+CLINIC_HAMBURG_RESULT=$(api_post "/clinics" '{
+  "name": "Tierärzte Elbchaussee",
+  "address": "Elbchaussee 120",
+  "city": "Hamburg",
+  "state": "Hamburg",
+  "zipCode": "22763",
+  "phone": "+49-40-5551234",
+  "email": "praxis@tieraerzte-elbchaussee.de",
+  "licenseNumber": "HH-HAM-2024-003",
+  "latitude": 53.5460,
+  "longitude": 9.9210
+}' "$VET_TOKEN")
+CLINIC_HAMBURG_ID=$(echo "$CLINIC_HAMBURG_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
+echo "  ✓ Tierärzte Elbchaussee (Hamburg): $CLINIC_HAMBURG_ID"
+
+# Köln clinic
+CLINIC_KOELN_RESULT=$(api_post "/clinics" '{
+  "name": "Kleintierpraxis am Dom",
+  "address": "Hohenzollernring 55",
+  "city": "Köln",
+  "state": "Nordrhein-Westfalen",
+  "zipCode": "50672",
+  "phone": "+49-221-7773456",
+  "email": "kontakt@kleintierpraxis-dom.de",
+  "licenseNumber": "NW-KOL-2024-004",
+  "latitude": 50.9413,
+  "longitude": 6.9400
+}' "$VET_TOKEN")
+CLINIC_KOELN_ID=$(echo "$CLINIC_KOELN_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
+echo "  ✓ Kleintierpraxis am Dom (Köln): $CLINIC_KOELN_ID"
+
+# Create vet accounts for each new clinic
+echo ""
+echo "🔑 Creating vet accounts for new clinics..."
+
+VET_BERLIN_EMAIL="dr.huber@tierklinik-volkspark.de"
+VET_HAMBURG_EMAIL="dr.petersen@elbchaussee.de"
+VET_KOELN_EMAIL="dr.klein@kleintierpraxis-dom.de"
+
+api_post "/auth/signup" "{\"email\":\"$VET_BERLIN_EMAIL\",\"password\":\"$VET_PASSWORD\",\"userType\":\"vet\"}" > /dev/null 2>&1
+api_post "/auth/signup" "{\"email\":\"$VET_HAMBURG_EMAIL\",\"password\":\"$VET_PASSWORD\",\"userType\":\"vet\"}" > /dev/null 2>&1
+api_post "/auth/signup" "{\"email\":\"$VET_KOELN_EMAIL\",\"password\":\"$VET_PASSWORD\",\"userType\":\"vet\"}" > /dev/null 2>&1
+
+# Associate vets with clinics via Cognito attribute
+USER_POOL_ID=$(aws cloudformation describe-stacks \
+  --stack-name "$STACK_NAME" \
+  --region "$REGION" \
+  --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" \
+  --output text)
+
+aws cognito-idp admin-update-user-attributes \
+  --user-pool-id "$USER_POOL_ID" \
+  --username "$VET_BERLIN_EMAIL" \
+  --user-attributes Name="custom:clinicId",Value="$CLINIC_BERLIN_ID" \
+  --region "$REGION" 2>/dev/null
+echo "  ✓ Dr. Huber → Tierklinik am Volkspark (Berlin)"
+
+aws cognito-idp admin-update-user-attributes \
+  --user-pool-id "$USER_POOL_ID" \
+  --username "$VET_HAMBURG_EMAIL" \
+  --user-attributes Name="custom:clinicId",Value="$CLINIC_HAMBURG_ID" \
+  --region "$REGION" 2>/dev/null
+echo "  ✓ Dr. Petersen → Tierärzte Elbchaussee (Hamburg)"
+
+aws cognito-idp admin-update-user-attributes \
+  --user-pool-id "$USER_POOL_ID" \
+  --username "$VET_KOELN_EMAIL" \
+  --user-attributes Name="custom:clinicId",Value="$CLINIC_KOELN_ID" \
+  --region "$REGION" 2>/dev/null
+echo "  ✓ Dr. Klein → Kleintierpraxis am Dom (Köln)"
+
+sleep 2
+
+# Sign in as each vet to get tokens with clinicId
+VET_BERLIN_TOKEN=$(api_post "/auth/signin" "{\"email\":\"$VET_BERLIN_EMAIL\",\"password\":\"$VET_PASSWORD\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
+VET_HAMBURG_TOKEN=$(api_post "/auth/signin" "{\"email\":\"$VET_HAMBURG_EMAIL\",\"password\":\"$VET_PASSWORD\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
+VET_KOELN_TOKEN=$(api_post "/auth/signin" "{\"email\":\"$VET_KOELN_EMAIL\",\"password\":\"$VET_PASSWORD\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
+echo "  ✓ All vet accounts signed in"
+
+echo ""
+echo "🐾 Creating pets for additional owners..."
+
+# Lotte (Berlin) — owned by Thomas Schmidt
+create_pet_with_token() {
+  local name=$1 species=$2 breed=$3 age=$4 token=$5
+  local result=$(curl -s -X POST "$API_URL/pets" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $token" \
+    -d "{\"name\":\"$name\",\"species\":\"$species\",\"breed\":\"$breed\",\"age\":$age}")
+  local petId=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
+  local code=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('claimingCode',''))" 2>/dev/null)
+  if [ -z "$petId" ]; then
+    echo "    ⚠ Failed to create $name. Response: $(echo $result | head -c 200)" >&2
+  fi
+  echo "$petId:$code"
+}
+
+IFS=: read LOTTE_B_ID LOTTE_B_CODE <<< "$(create_pet_with_token "Lotte" "Dog" "Dachshund" 9 "$VET_BERLIN_TOKEN")"
+# Claim as Thomas
+claim_pet_as() {
+  local code=$1 ownerName=$2 ownerEmail=$3 ownerPhone=$4 token=$5
+  if [ -z "$code" ]; then return; fi
+  api_post "/pets/claim" "{\"claimingCode\":\"$code\",\"ownerName\":\"$ownerName\",\"ownerEmail\":\"$ownerEmail\",\"ownerPhone\":\"$ownerPhone\"}" "$token" > /dev/null
+}
+claim_pet_as "$LOTTE_B_CODE" "Thomas Schmidt" "$OWNER2_EMAIL" "+49-170-9876543" "$OWNER2_TOKEN"
+echo "  ✓ Lotte (Dachshund) — owned by Thomas Schmidt (Berlin)"
+
+# Susi (Hamburg) — owned by Lisa Wagner
+IFS=: read SUSI_H_ID SUSI_H_CODE <<< "$(create_pet_with_token "Susi" "Dog" "English Setter/Labrador Mix" 4 "$VET_HAMBURG_TOKEN")"
+claim_pet_as "$SUSI_H_CODE" "Lisa Wagner" "$OWNER3_EMAIL" "+49-151-2345678" "$OWNER3_TOKEN"
+echo "  ✓ Susi (English Setter/Labrador Mix) — owned by Lisa Wagner (Hamburg)"
+
+# Timmi (Köln) — owned by Markus Becker
+IFS=: read TIMMI_K_ID TIMMI_K_CODE <<< "$(create_pet_with_token "Timmi" "Cat" "Domestic Shorthair" 6 "$VET_KOELN_TOKEN")"
+claim_pet_as "$TIMMI_K_CODE" "Markus Becker" "$OWNER4_EMAIL" "+49-160-4567890" "$OWNER4_TOKEN"
+echo "  ✓ Timmi (Domestic Shorthair) — owned by Markus Becker (Köln)"
+
 # ── 4. Report some pets as missing ─────────────────────────────────────────
 
 echo ""
@@ -294,6 +467,7 @@ echo "🚨 Reporting missing pets..."
 report_missing() {
   local petId=$1
   local petName=$2
+  local token=$3
   if [ -z "$petId" ]; then
     echo "    ⚠ No pet ID for $petName, skipping report missing" >&2
     return
@@ -302,24 +476,30 @@ report_missing() {
     "searchRadiusKm": 50,
     "lastSeenLocation": "Englischer Garten, München",
     "contactMethod": "clinic"
-  }' "$OWNER_TOKEN")
+  }' "$token")
   local flyerUrl=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('flyerUrl',''))" 2>/dev/null)
   if [ -z "$flyerUrl" ]; then
     echo "    ⚠ Report missing failed for $petName. Response: $(echo $result | head -c 200)" >&2
   fi
 }
 
-report_missing "$LUNA_ID" "Luna"
-echo "  ✓ Luna reported missing"
-report_missing "$REX_ID" "Rex"
-echo "  ✓ Rex reported missing"
-report_missing "$NALA_ID" "Nala"
-echo "  ✓ Nala reported missing"
+report_missing "$LUNA_ID" "Luna" "$OWNER_TOKEN"
+echo "  ✓ Luna reported missing (München)"
+report_missing "$REX_ID" "Rex" "$OWNER_TOKEN"
+echo "  ✓ Rex reported missing (München)"
+report_missing "$NALA_ID" "Nala" "$OWNER_TOKEN"
+echo "  ✓ Nala reported missing (München)"
+report_missing "$LOTTE_B_ID" "Lotte" "$OWNER2_TOKEN"
+echo "  ✓ Lotte reported missing (Berlin)"
+report_missing "$SUSI_H_ID" "Susi" "$OWNER3_TOKEN"
+echo "  ✓ Susi reported missing (Hamburg)"
+report_missing "$TIMMI_K_ID" "Timmi" "$OWNER4_TOKEN"
+echo "  ✓ Timmi reported missing (Köln)"
 
-# ── 5. Update owner profile ────────────────────────────────────────────────
+# ── 5. Update owner profiles ───────────────────────────────────────────────
 
 echo ""
-echo "👤 Updating owner profile..."
+echo "👤 Updating owner profiles..."
 curl -s -X PUT "$API_URL/account/profile" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OWNER_TOKEN" \
@@ -331,7 +511,46 @@ curl -s -X PUT "$API_URL/account/profile" \
     "ownerZipCode": "80802",
     "ownerCity": "München"
   }' > /dev/null
-echo "  ✓ Owner profile updated"
+echo "  ✓ Anna Müller (München)"
+
+curl -s -X PUT "$API_URL/account/profile" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OWNER2_TOKEN" \
+  -d '{
+    "ownerName": "Thomas Schmidt",
+    "ownerPhone": "+49-170-9876543",
+    "ownerStreet": "Kastanienallee",
+    "ownerHouseNumber": "15",
+    "ownerZipCode": "10435",
+    "ownerCity": "Berlin"
+  }' > /dev/null
+echo "  ✓ Thomas Schmidt (Berlin)"
+
+curl -s -X PUT "$API_URL/account/profile" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OWNER3_TOKEN" \
+  -d '{
+    "ownerName": "Lisa Wagner",
+    "ownerPhone": "+49-151-2345678",
+    "ownerStreet": "Eppendorfer Weg",
+    "ownerHouseNumber": "42",
+    "ownerZipCode": "20259",
+    "ownerCity": "Hamburg"
+  }' > /dev/null
+echo "  ✓ Lisa Wagner (Hamburg)"
+
+curl -s -X PUT "$API_URL/account/profile" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OWNER4_TOKEN" \
+  -d '{
+    "ownerName": "Markus Becker",
+    "ownerPhone": "+49-160-4567890",
+    "ownerStreet": "Aachener Straße",
+    "ownerHouseNumber": "88",
+    "ownerZipCode": "50674",
+    "ownerCity": "Köln"
+  }' > /dev/null
+echo "  ✓ Markus Becker (Köln)"
 
 # ── Summary ────────────────────────────────────────────────────────────────
 
@@ -340,11 +559,23 @@ echo "════════════════════════�
 echo "✅ Cloud seed complete!"
 echo ""
 echo "Login credentials:"
-echo "  Vet:   $VET_EMAIL / $VET_PASSWORD"
-echo "  Owner: $OWNER_EMAIL / $OWNER_PASSWORD"
+echo "  Vet:              $VET_EMAIL / $VET_PASSWORD"
+echo "  Owner (München):  $OWNER_EMAIL / $OWNER_PASSWORD"
+echo "  Owner (Berlin):   $OWNER2_EMAIL / $OWNER2_PASSWORD"
+echo "  Owner (Hamburg):  $OWNER3_EMAIL / $OWNER3_PASSWORD"
+echo "  Owner (Köln):     $OWNER4_EMAIL / $OWNER4_PASSWORD"
+echo ""
+echo "Clinics:"
+echo "  Tierarztpraxis Pfötchen   — München"
+echo "  Tierklinik am Volkspark   — Berlin"
+echo "  Tierärzte Elbchaussee     — Hamburg"
+echo "  Kleintierpraxis am Dom    — Köln"
 echo ""
 echo "Missing pets (visible in public search):"
-echo "  Luna (Siamese), Rex (German Shepherd), Nala (Persian)"
+echo "  Luna (Siamese), Rex (German Shepherd), Nala (Persian) — München"
+echo "  Lotte (Dachshund) — Berlin"
+echo "  Susi (English Setter/Labrador Mix) — Hamburg"
+echo "  Timmi (Domestic Shorthair) — Köln"
 echo ""
 echo "Claiming codes:"
 echo "  Minka:  $MINKA_CODE"
