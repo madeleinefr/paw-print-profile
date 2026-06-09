@@ -32,8 +32,6 @@ function mimeTypeToExt(mimeType: string): string {
       return 'jpeg'
     case 'image/png':
       return 'png'
-    case 'image/webp':
-      return 'webp'
     default:
       return 'jpeg'
   }

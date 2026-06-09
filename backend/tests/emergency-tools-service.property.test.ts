@@ -41,7 +41,7 @@ const reportMissingInputArb: fc.Arbitrary<ReportMissingInput> = fc.record({
   contactMethod: contactMethodArb,
 })
 
-const mimeTypeArb = fc.constantFrom('image/jpeg', 'image/png', 'image/webp')
+const mimeTypeArb = fc.constantFrom('image/jpeg', 'image/png')
 const invalidMimeTypeArb = fc.constantFrom('image/gif', 'image/bmp', 'image/tiff', 'application/pdf')
 const validFileSizeArb = fc.integer({ min: 1024, max: 10 * 1024 * 1024 }) // 1KB to 10MB
 const oversizedFileSizeArb = fc.integer({ min: 10 * 1024 * 1024 + 1, max: 50 * 1024 * 1024 })
@@ -614,7 +614,7 @@ describe('[FR-16] Property 59: Photo guidance display', () => {
     }
 
     // Requirements
-    expect(guidelines.requirements.formats).toEqual(['JPEG', 'PNG', 'WebP'])
+    expect(guidelines.requirements.formats).toEqual(['JPEG', 'PNG'])
     expect(guidelines.requirements.maxSizeMB).toBe(10)
     expect(guidelines.requirements.maxSizeBytes).toBe(10 * 1024 * 1024)
     expect(guidelines.requirements.recommendedResolution).toBeTruthy()

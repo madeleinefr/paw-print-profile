@@ -7,9 +7,11 @@
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { SearchService } from '../services/search-service'
+import { GeocodingService } from '../services/geocoding-service'
 import { ErrorHandler } from '../errors/index'
 
 const searchService = new SearchService()
+const geocodingService = new GeocodingService()
 
 /**
  * Main Lambda handler for search endpoints
@@ -84,6 +86,7 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
     latitude,
     longitude,
     radius,
+    location,
     missingOnly,
   } = event.queryStringParameters || {}
 
@@ -119,9 +122,11 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
   }
 
   let results
+  let geocodedLocation: { latitude: number; longitude: number; displayName: string } | null = null
 
-  // Location-based search
+  // Location-based search: support both direct coordinates and city/ZIP geocoding
   if (latitude && longitude && radius) {
+    // Direct lat/lng coordinates provided
     const lat = parseFloat(latitude)
     const lng = parseFloat(longitude)
     const radiusKm = parseFloat(radius)
@@ -139,7 +144,53 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
       }
     }
 
+    geocodedLocation = { latitude: lat, longitude: lng, displayName: `${lat}, ${lng}` }
     results = await searchService.searchByLocation(lat, lng, radiusKm, criteria)
+    // Strip owner contact info for public results [FR-15]
+    results = results.map(r => ({
+      ...r,
+      owner: undefined,
+      contactMethod: 'platform_messaging' as const,
+      messageUrl: `${process.env.APP_BASE_URL || 'https://app.pawprintprofile.com'}/contact/${r.petId}`,
+    }))
+  } else if (location && radius) {
+    // City/ZIP code provided — geocode to coordinates [FR-11][FR-12]
+    const geocodeResult = await geocodingService.geocode(location)
+
+    if (!geocodeResult) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: {
+            code: 'GEOCODING_FAILED',
+            message: `Could not resolve location "${location}". Try a different city name or ZIP code.`,
+          },
+        }),
+      }
+    }
+
+    const radiusKm = parseFloat(radius)
+    if (isNaN(radiusKm) || radiusKm <= 0) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: {
+            code: 'INVALID_RADIUS',
+            message: 'Radius must be a positive number',
+          },
+        }),
+      }
+    }
+
+    geocodedLocation = geocodeResult
+    results = await searchService.searchByLocation(
+      geocodeResult.latitude,
+      geocodeResult.longitude,
+      radiusKm,
+      criteria
+    )
     // Strip owner contact info for public results [FR-15]
     results = results.map(r => ({
       ...r,
@@ -159,6 +210,7 @@ async function handleSearch(event: APIGatewayProxyEvent, corsHeaders: Record<str
       results,
       count: results.length,
       searchCriteria: criteria,
+      ...(geocodedLocation && { location: geocodedLocation }),
     }),
   }
 }
