@@ -174,7 +174,12 @@ export function SearchPage() {
       )}
 
       {results.map((pet) => (
-        <div key={pet.petId} className="pet-card">
+        <Link
+          key={pet.petId}
+          to={`/search/${pet.petId}`}
+          style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        >
+        <div className="pet-card" style={{ cursor: 'pointer', transition: 'box-shadow 0.2s ease' }}>
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
             {/* Pet images */}
             {pet.images.length > 0 && (
@@ -217,7 +222,7 @@ export function SearchPage() {
 
               {/* Anonymous contact [FR-15] */}
               <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-                <Link to={`/contact/${pet.petId}`}>
+                <Link to={`/contact/${pet.petId}`} onClick={(e) => e.stopPropagation()}>
                   <button type="button" className="btn-secondary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>
                     <Mail size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Contact Owner Anonymously
                   </button>
@@ -226,6 +231,7 @@ export function SearchPage() {
             </div>
           </div>
         </div>
+        </Link>
       ))}
     </div>
   )

@@ -7,6 +7,7 @@ import { SignUpPage } from './pages/SignUpPage'
 import { SearchPage } from './pages/SearchPage'
 import { CareSnapshotAccess } from './pages/public/CareSnapshotAccess'
 import { ContactPetOwner } from './pages/public/ContactPetOwner'
+import { PetSearchDetail } from './pages/public/PetSearchDetail'
 import { VetDashboard } from './pages/vet/VetDashboard'
 import { VetPets } from './pages/vet/VetPets'
 import { VetPetDetail } from './pages/vet/VetPetDetail'
@@ -26,6 +27,7 @@ function App() {
           <Route element={<AppLayout />}>
             {/* Public routes */}
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/search/:petId" element={<PetSearchDetail />} />
             <Route path="/care/:accessCode" element={<CareSnapshotAccess />} />
             <Route path="/care" element={<CareSnapshotAccess />} />
             <Route path="/contact/:petId" element={<ContactPetOwner />} />

@@ -697,6 +697,14 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+        GetPetDetails:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /search/{petId}
+            Method: GET
+            Auth:
+              Authorizer: NONE
 
   # Auth Function (Public, no Cognito authorizer — handles its own auth)
   # Handles: POST /auth/signup, /auth/signin, /auth/refresh, /auth/signout,
