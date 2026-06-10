@@ -84,6 +84,12 @@ export class MissingPetService {
    * 4. Find nearby clinics using geographic search
    * 5. Send missing pet alerts to all nearby clinics via NotificationService
    *
+   * @param petId - The pet to report as missing
+   * @param ownerId - The authenticated owner's user ID
+   * @param input - Report details (search radius, location, contact method)
+   * @returns Report result with flyer URL, notified clinic count, and notification result
+   * @throws ValidationException if input is invalid, pet not found, not owned, or already missing
+   *
    * Requirements: [FR-08], [FR-09], [NFR-USA-01]
    */
   async reportMissing(
@@ -150,6 +156,11 @@ export class MissingPetService {
    * 2. Update pet status to not missing
    * 3. Find nearby clinics (same set that was originally notified)
    * 4. Send pet found notifications to all nearby clinics
+   *
+   * @param petId - The pet to mark as found
+   * @param ownerId - The authenticated owner's user ID
+   * @returns Found result with notified clinic count and notification result
+   * @throws ValidationException if pet not found, not owned, or not currently missing
    *
    * Requirements: [FR-10]
    */

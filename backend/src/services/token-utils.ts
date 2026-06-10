@@ -18,6 +18,9 @@ import { AuthUser } from './auth-service'
 /**
  * Decode a JWT token payload without verification.
  * Safe to use after API Gateway Cognito authorizer has already validated the token.
+ *
+ * @param token - A JWT string (header.payload.signature)
+ * @returns The decoded payload object, or null if the token is malformed
  */
 export function decodeJwtPayload(token: string): Record<string, any> | null {
   try {
@@ -33,6 +36,9 @@ export function decodeJwtPayload(token: string): Record<string, any> | null {
 /**
  * Extract AuthUser from a Cognito idToken JWT payload.
  * Returns null if the token doesn't contain required claims.
+ *
+ * @param token - A Cognito ID token JWT string
+ * @returns AuthUser with userId, email, userType, and optional clinicId, or null
  */
 export function extractUserFromIdToken(token: string): AuthUser | null {
   const payload = decodeJwtPayload(token)

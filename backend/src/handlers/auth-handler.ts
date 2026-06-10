@@ -39,6 +39,13 @@ function getToken(event: APIGatewayProxyEvent): string | null {
   return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
 }
 
+/**
+ * Main Lambda handler for authentication, account management, and profile operations.
+ *
+ * @param event - API Gateway proxy event containing HTTP method, path, headers, and body
+ * @returns API Gateway proxy result with status code, headers, and JSON body
+ * @throws AuthError for authentication failures (mapped to appropriate HTTP status codes)
+ */
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const { httpMethod, path, body: rawBody } = event
   const body = rawBody ? JSON.parse(rawBody) : {}

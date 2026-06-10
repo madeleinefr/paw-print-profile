@@ -34,7 +34,12 @@ export class CareSnapshotRepository {
   }
 
   /**
-   * Create a care snapshot with time-limited access
+   * Create a care snapshot with time-limited access.
+   * Generates a unique access code (CARE-XXXXXXXX) and sets up GSI5 for code lookup.
+   *
+   * @param input - Snapshot data (petId, care instructions, feeding, medications, expiry hours)
+   * @param emergencyContacts - Contact info for emergencies (owner phone/email, vet clinic)
+   * @returns The snapshot response with access code and URL
    */
   async create(input: CreateCareSnapshotInput, emergencyContacts: CareSnapshot['emergencyContacts']): Promise<CareSnapshotResponse> {
     const snapshotId = uuidv4()
@@ -78,7 +83,11 @@ export class CareSnapshotRepository {
   }
 
   /**
-   * Find a care snapshot by access code using GSI5
+   * Find a care snapshot by access code using GSI5.
+   * Returns null if the code is invalid or the snapshot has expired.
+   *
+   * @param accessCode - The time-limited access code (e.g., "CARE-AB12CD34")
+   * @returns The snapshot record or null if not found/expired
    */
   async findByAccessCode(accessCode: string): Promise<CareSnapshot | null> {
     const command = new QueryCommand({
@@ -108,7 +117,10 @@ export class CareSnapshotRepository {
   }
 
   /**
-   * Find a care snapshot by ID
+   * Find a care snapshot by ID using DynamoDB GetItem.
+   *
+   * @param snapshotId - The snapshot's unique identifier
+   * @returns The snapshot record or null if not found
    */
   async findById(snapshotId: string): Promise<CareSnapshot | null> {
     const command = new GetCommand({
@@ -124,7 +136,10 @@ export class CareSnapshotRepository {
   }
 
   /**
-   * Update access timestamp when snapshot is accessed
+   * Update access timestamp when snapshot is accessed.
+   * Records the time for audit/analytics purposes.
+   *
+   * @param snapshotId - The snapshot that was accessed
    */
   async recordAccess(snapshotId: string): Promise<void> {
     const now = new Date().toISOString()
@@ -145,7 +160,9 @@ export class CareSnapshotRepository {
   }
 
   /**
-   * Delete an expired care snapshot
+   * Delete an expired care snapshot from DynamoDB.
+   *
+   * @param snapshotId - The snapshot to delete
    */
   async delete(snapshotId: string): Promise<void> {
     const command = new DeleteCommand({
@@ -160,7 +177,10 @@ export class CareSnapshotRepository {
   }
 
   /**
-   * Find all care snapshots for a pet
+   * Find all care snapshots for a pet using a scan with filter.
+   *
+   * @param petId - The pet to query snapshots for
+   * @returns Array of care snapshot records for the specified pet
    */
   async findByPet(petId: string): Promise<CareSnapshot[]> {
     const command = new ScanCommand({

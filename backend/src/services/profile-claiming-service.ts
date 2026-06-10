@@ -84,6 +84,11 @@ export class ProfileClaimingService {
 
   /**
    * Find all pending (unclaimed) profiles for a clinic dashboard.
+   *
+   * @param clinicId - The clinic to query pending claims for
+   * @returns Array of pets with 'Pending Claim' status
+   * @throws ValidationException if clinic not found
+   *
    * Requirements: [FR-04]
    */
   async findPendingClaims(clinicId: string): Promise<Pet[]> {
@@ -97,6 +102,12 @@ export class ProfileClaimingService {
   /**
    * Transfer ownership of a pet profile to a new owner atomically.
    * Validates the claiming code and owner eligibility before transferring.
+   *
+   * @param input - Claiming details (claimingCode, ownerName, ownerEmail, ownerPhone)
+   * @param ownerId - The authenticated owner's user ID
+   * @returns Claim response with pet info and new status
+   * @throws ValidationException if code is invalid, expired, or profile already claimed
+   *
    * Requirements: [FR-04]
    */
   async transferOwnership(input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
@@ -115,6 +126,10 @@ export class ProfileClaimingService {
   /**
    * Validate whether a claiming code is valid and the profile is eligible to be claimed.
    * Returns the pet if eligible, or a reason string if not.
+   *
+   * @param claimingCode - The claiming code to validate
+   * @returns Object with eligible flag, pet if valid, or reason if ineligible
+   *
    * Requirements: [FR-04]
    */
   async validateOwnerEligibility(
@@ -145,6 +160,12 @@ export class ProfileClaimingService {
   /**
    * Regenerate a claiming code for a pending profile (e.g. after expiry).
    * Only allowed when the profile is still in 'Pending Claim' status.
+   *
+   * @param petId - The pet to regenerate the code for
+   * @param clinicId - The vet's clinic ID (must match pet's clinic)
+   * @returns Object with new claimingCode and expiryDate
+   * @throws ValidationException if pet not found, wrong clinic, or already claimed
+   *
    * Requirements: [FR-04]
    */
   async regenerateClaimingCode(petId: string, clinicId: string): Promise<{ claimingCode: string; expiryDate: string }> {
@@ -182,6 +203,10 @@ export class ProfileClaimingService {
    *
    * If any condition fails (e.g., pet was already transferred by another request),
    * the entire transaction is rejected — no partial changes occur.
+   *
+   * @param input - Transfer details (petId, sourceOwnerId, targetOwnerId, target owner info)
+   * @returns Transfer result with old/new owner IDs and timestamp
+   * @throws TransactionError if validation fails, pet not found, ownership mismatch, or concurrent modification
    *
    * Requirements:
    * - [NFR-REL-04]: Multi-step operations should be atomic

@@ -83,6 +83,12 @@ export class EmergencyToolsService {
    * 2. Owner fills in location/contact method and confirms
    * 3. System generates flyer, marks pet missing, notifies clinics
    *
+   * @param petId - The pet to report as missing
+   * @param ownerId - The authenticated owner's user ID
+   * @param input - Report details (search radius, location, contact method)
+   * @returns Report result with flyer URL and notified clinic count
+   * @throws ValidationException if input is invalid, pet not found, not owned, or already missing
+   *
    * Requirements: [FR-08], [FR-09], [NFR-USA-01]
    */
   async reportMissing(petId: string, ownerId: string, input: ReportMissingInput): Promise<ReportMissingResult> {
@@ -157,6 +163,12 @@ export class EmergencyToolsService {
    * Generate a letter-size (8.5" x 11") missing pet flyer as PDF.
    * Delegates to FlyerGenerationService.
    *
+   * @param pet - The missing pet record
+   * @param clinic - The pet's clinic (for contact info), or null
+   * @param images - Pet images to include on the flyer
+   * @param input - Report input with location, notes, and contact method
+   * @returns The S3 URL of the generated flyer PDF
+   *
    * Requirements: [FR-09], [FR-15], [NFR-USA-01]
    */
   async generateMissingPetFlyer(
@@ -176,6 +188,11 @@ export class EmergencyToolsService {
 
   /**
    * Mark a pet as found, update status, and notify previously alerted clinics.
+   *
+   * @param petId - The pet to mark as found
+   * @param ownerId - The authenticated owner's user ID
+   * @returns Result with updated status and notified clinic count
+   * @throws ValidationException if pet not found, not owned, or not currently missing
    *
    * Requirements: [FR-10]
    */
@@ -223,6 +240,11 @@ export class EmergencyToolsService {
   /**
    * Generate a care snapshot for temporary caregivers.
    * Delegates to CareSnapshotService.
+   *
+   * @param input - Snapshot data (petId, care instructions, feeding, medications, expiry)
+   * @param ownerId - The authenticated owner's user ID
+   * @returns Snapshot response with access code and URL
+   * @throws ValidationException if input is invalid or pet not owned by user
    *
    * Requirements: [FR-13]
    */

@@ -13,16 +13,26 @@ import { PawPrint, ClipboardList, UtensilsCrossed, Pill, AlertTriangle } from 'l
 import { api, ApiException } from '../../api/client'
 
 interface CareSnapshotData {
+  /** Pet's display name */
   petName: string
+  /** Free-text care instructions from the owner */
   careInstructions: string
+  /** Feeding schedule description */
   feedingSchedule: string
+  /** List of current medications */
   medications: string[]
+  /** Emergency contact details for caregiver */
   emergencyContacts: {
+    /** Owner's phone number */
     ownerPhone: string
+    /** Owner's email address */
     ownerEmail: string
+    /** Name of the registered vet clinic */
     vetClinicName: string
+    /** Vet clinic phone number */
     vetClinicPhone: string
   }
+  /** ISO timestamp when this snapshot expires */
   expiryDate: string
 }
 

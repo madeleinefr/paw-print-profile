@@ -94,6 +94,10 @@ export class LocalAuthService {
 
   /**
    * Register a new user. Stores in DynamoDB with hashed password.
+   *
+   * @param input - Sign-up details (email, password, userType, optional clinicId)
+   * @returns The created AuthUser
+   * @throws AuthError if input is invalid or email already exists
    */
   async signUp(input: SignUpInput): Promise<AuthUser> {
     const { email, password, userType, clinicId } = input
@@ -140,6 +144,11 @@ export class LocalAuthService {
 
   /**
    * Authenticate a user and return mock JWT tokens.
+   *
+   * @param email - User's email address
+   * @param password - User's password
+   * @returns Mock JWT tokens (access, ID, refresh) and expiry
+   * @throws AuthError if credentials are invalid
    */
   async signIn(email: string, password: string): Promise<AuthTokens> {
     if (!email || !password) {
@@ -197,6 +206,9 @@ export class LocalAuthService {
 
   /**
    * Get the current user from an access token.
+   *
+   * @param accessToken - Mock JWT access token
+   * @returns AuthUser or null if token is invalid/expired
    */
   async getCurrentUser(accessToken: string): Promise<AuthUser | null> {
     if (!accessToken) return null
@@ -219,6 +231,10 @@ export class LocalAuthService {
 
   /**
    * Refresh tokens using a stored refresh token.
+   *
+   * @param refreshToken - The refresh token to exchange for new tokens
+   * @returns New access and ID tokens
+   * @throws AuthError if refresh token is invalid or expired
    */
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     if (!refreshToken) {
@@ -267,6 +283,9 @@ export class LocalAuthService {
   /**
    * Associate a clinic ID with an existing user.
    * Used when a vet creates a clinic after signing up without one.
+   *
+   * @param userId - The user to update
+   * @param clinicId - The clinic to associate
    */
   async associateClinic(userId: string, clinicId: string): Promise<void> {
     await this.docClient.send(new UpdateCommand({
@@ -279,6 +298,9 @@ export class LocalAuthService {
 
   /**
    * Get the user's stored profile (contact details + address).
+   *
+   * @param userId - The user's ID
+   * @returns Profile fields or null if user not found
    */
   async getProfile(userId: string): Promise<Record<string, any> | null> {
     const result = await this.docClient.send(new GetCommand({
@@ -299,6 +321,9 @@ export class LocalAuthService {
 
   /**
    * Update the user's profile (contact details + address).
+   *
+   * @param userId - The user's ID
+   * @param profile - Partial profile fields to update
    */
   async updateProfile(userId: string, profile: {
     ownerName?: string
@@ -348,6 +373,9 @@ export class LocalAuthService {
 
   /**
    * Look up a user by email.
+   *
+   * @param email - The user's email address
+   * @returns AuthUser or null if not found
    */
   async getUserByEmail(email: string): Promise<AuthUser | null> {
     if (!email) return null

@@ -19,7 +19,11 @@ const authService = new AuthService()
 const authzService = new AuthorizationService()
 
 /**
- * Main Lambda handler for clinic management endpoints
+ * Main Lambda handler for clinic management endpoints.
+ *
+ * @param event - API Gateway proxy event with path, method, auth headers, and body
+ * @returns API Gateway proxy result with CORS headers and JSON response body
+ * @throws Errors are caught and converted via ErrorHandler.toResponse()
  */
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Clinic Handler - Event:', JSON.stringify(event, null, 2))

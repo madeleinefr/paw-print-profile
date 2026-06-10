@@ -9,13 +9,21 @@ import { useNavigate } from 'react-router-dom'
 import { api, ApiException } from '../../api/client'
 
 interface MedicalProfileResponse {
+  /** Unique pet identifier */
   petId: string
+  /** Pet's display name */
   name: string
+  /** e.g., "Dog", "Cat" */
   species: string
+  /** Breed description */
   breed: string
+  /** Age in years */
   age: number
+  /** Generated code for owner to claim this profile */
   claimingCode: string
+  /** ISO timestamp when the claiming code expires */
   claimingCodeExpiry: string
+  /** Current profile status (e.g., "Pending") */
   profileStatus: string
 }
 

@@ -9,12 +9,19 @@ import { useAuth } from '../../auth/AuthContext'
 import { api, ApiException } from '../../api/client'
 
 interface PendingPet {
+  /** Unique pet identifier */
   petId: string
+  /** Pet's display name */
   name: string
+  /** e.g., "Dog", "Cat" */
   species: string
+  /** Breed description */
   breed: string
+  /** Age in years */
   age: number
+  /** Code for owner to claim this profile */
   claimingCode?: string
+  /** ISO timestamp when the profile was created */
   createdAt: string
 }
 
