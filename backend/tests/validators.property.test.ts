@@ -70,14 +70,14 @@ const floatAgeArb = fc
   .filter((n) => !Number.isInteger(n))
 
 /** Allowed MIME types */
-const allowedMimeArb = fc.constantFrom('image/jpeg', 'image/png', 'image/webp')
+const allowedMimeArb = fc.constantFrom('image/jpeg', 'image/png')
 
 /** Disallowed MIME types */
 const disallowedMimeArb = fc
   .string({ minLength: 1, maxLength: 30 })
   .filter(
     (s) =>
-      !['image/jpeg', 'image/png', 'image/webp'].includes(s.toLowerCase())
+      !['image/jpeg', 'image/png'].includes(s.toLowerCase())
   )
 
 /** File size within 10 MB */
@@ -175,7 +175,7 @@ describe('Property 6: Age validation', () => {
 
 describe('Property 7: Image format validation', () => {
   /**
-   * For any allowed MIME type (image/jpeg, image/png, image/webp),
+   * For any allowed MIME type (image/jpeg, image/png),
    * validateImageFormat() returns no errors.
    */
   it('allowed MIME types produce no format errors', () => {

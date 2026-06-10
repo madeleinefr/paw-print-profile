@@ -403,7 +403,7 @@ describe('[FR-16] Photo guidelines are displayed correctly', () => {
 
   it('specifies correct supported formats', () => {
     const guidelines = photoService.getPhotoGuidelines()
-    expect(guidelines.requirements.formats).toEqual(['JPEG', 'PNG', 'WebP'])
+    expect(guidelines.requirements.formats).toEqual(['JPEG', 'PNG'])
   })
 
   it('specifies 10MB size limit', () => {

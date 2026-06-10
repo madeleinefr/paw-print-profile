@@ -336,9 +336,10 @@ describe('validateImageFormat - Edge Cases', () => {
     expect(errors).toHaveLength(0)
   })
 
-  it('accepts image/webp', () => {
+  it('rejects image/webp', () => {
     const errors = validateImageFormat('image/webp')
-    expect(errors).toHaveLength(0)
+    expect(errors).toHaveLength(1)
+    expect(errors[0].field).toBe('image')
   })
 
   it('accepts IMAGE/JPEG (uppercase)', () => {

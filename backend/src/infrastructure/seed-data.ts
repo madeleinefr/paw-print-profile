@@ -218,52 +218,6 @@ async function seed() {
   })
   console.log(`  ✓ Olive (Ridgeback, 1y) — Pending Claim (code: ${charlie.claimingCode})`)
 
-  // Pet 6: Claimed + Active (owned by owner-1)
-  const bella = await petRepo.createMedicalProfile({
-    name: 'Susi',
-    species: 'Dog',
-    breed: 'English Setter/Labrador Mix',
-    age: 0,
-    clinicId: clinic.clinicId,
-    verifyingVetId: VET_ID,
-  })
-  await petRepo.claimProfile(bella.petId, {
-    claimingCode: bella.claimingCode,
-    ownerName: 'Anna Müller',
-    ownerEmail: 'anna.mueller@beispiel.de',
-    ownerPhone: '+49-176-12345678',
-  }, OWNER_ID)
-  await petRepo.update(bella.petId, {
-    ownerStreet: 'Leopoldstraße',
-    ownerHouseNumber: '27',
-    ownerZipCode: '80802',
-    ownerCity: 'München',
-  })
-  console.log(`  ✓ Susi (English Setter/Labrador Mix, 4 months) — Active, owned by ${OWNER_ID}`)
-
-  // Pet 7: Claimed + Active (owned by owner-1) — Cat
-  const simba = await petRepo.createMedicalProfile({
-    name: 'Timmi',
-    species: 'Cat',
-    breed: 'Domestic Shorthair',
-    age: 6,
-    clinicId: clinic.clinicId,
-    verifyingVetId: VET_ID,
-  })
-  await petRepo.claimProfile(simba.petId, {
-    claimingCode: simba.claimingCode,
-    ownerName: 'Anna Müller',
-    ownerEmail: 'anna.mueller@beispiel.de',
-    ownerPhone: '+49-176-12345678',
-  }, OWNER_ID)
-  await petRepo.update(simba.petId, {
-    ownerStreet: 'Leopoldstraße',
-    ownerHouseNumber: '27',
-    ownerZipCode: '80802',
-    ownerCity: 'München',
-  })
-  console.log(`  ✓ Timmi (Domestic Shorthair, 6y) — Active, owned by ${OWNER_ID}`)
-
   // Pet 8: Claimed + Missing (owned by owner-1) — another missing Cat
   const nala = await petRepo.createMedicalProfile({
     name: 'Nala',
@@ -322,6 +276,219 @@ async function seed() {
   })
   console.log(`  ✓ Lotte (Dachshund, 9y) — Active, owned by ${OWNER_ID}`)
 
+  // ── 2b. Additional owners, clinics, and pets in other cities ─────────────
+  console.log('\n🏥 Creating additional clinics in other cities...')
+
+  // Berlin clinic
+  const clinicBerlin = await clinicRepo.create({
+    name: 'Tierklinik am Volkspark',
+    address: 'Schönhauser Allee 78',
+    city: 'Berlin',
+    state: 'Berlin',
+    zipCode: '10439',
+    phone: '+49-30-9876543',
+    email: 'info@tierklinik-volkspark.de',
+    licenseNumber: 'BE-BER-2024-002',
+    latitude: 52.5480,
+    longitude: 13.4130,
+  })
+  console.log(`  ✓ Clinic: ${clinicBerlin.name} (Berlin)`)
+
+  // Hamburg clinic
+  const clinicHamburg = await clinicRepo.create({
+    name: 'Tierärzte Elbchaussee',
+    address: 'Elbchaussee 120',
+    city: 'Hamburg',
+    state: 'Hamburg',
+    zipCode: '22763',
+    phone: '+49-40-5551234',
+    email: 'praxis@tieraerzte-elbchaussee.de',
+    licenseNumber: 'HH-HAM-2024-003',
+    latitude: 53.5460,
+    longitude: 9.9210,
+  })
+  console.log(`  ✓ Clinic: ${clinicHamburg.name} (Hamburg)`)
+
+  // Köln clinic
+  const clinicKoeln = await clinicRepo.create({
+    name: 'Kleintierpraxis am Dom',
+    address: 'Hohenzollernring 55',
+    city: 'Köln',
+    state: 'Nordrhein-Westfalen',
+    zipCode: '50672',
+    phone: '+49-221-7773456',
+    email: 'kontakt@kleintierpraxis-dom.de',
+    licenseNumber: 'NW-KOL-2024-004',
+    latitude: 50.9413,
+    longitude: 6.9400,
+  })
+  console.log(`  ✓ Clinic: ${clinicKoeln.name} (Köln)`)
+
+  // Create 3 new owner accounts
+  console.log('\n🔑 Creating additional owner accounts...')
+
+  const OWNER2_EMAIL = 'thomas.schmidt@beispiel.de'
+  const OWNER2_PASSWORD = 'Test1234!'
+  let owner2UserId: string
+  try {
+    const owner2 = await authService.signUp({
+      email: OWNER2_EMAIL,
+      password: OWNER2_PASSWORD,
+      userType: 'owner',
+    })
+    owner2UserId = owner2.userId
+    await authService.updateProfile(owner2UserId, {
+      ownerName: 'Thomas Schmidt',
+      ownerPhone: '+49-170-9876543',
+      ownerStreet: 'Kastanienallee',
+      ownerHouseNumber: '15',
+      ownerZipCode: '10435',
+      ownerCity: 'Berlin',
+    })
+    console.log(`  ✓ Owner: ${OWNER2_EMAIL} / ${OWNER2_PASSWORD} (Berlin)`)
+  } catch (err: any) {
+    if (err.message?.includes('already exists')) {
+      console.log(`  ⚠ Owner account already exists: ${OWNER2_EMAIL}`)
+      const existing = await authService.getUserByEmail(OWNER2_EMAIL)
+      owner2UserId = existing!.userId
+    } else {
+      throw err
+    }
+  }
+
+  const OWNER3_EMAIL = 'lisa.wagner@beispiel.de'
+  const OWNER3_PASSWORD = 'Test1234!'
+  let owner3UserId: string
+  try {
+    const owner3 = await authService.signUp({
+      email: OWNER3_EMAIL,
+      password: OWNER3_PASSWORD,
+      userType: 'owner',
+    })
+    owner3UserId = owner3.userId
+    await authService.updateProfile(owner3UserId, {
+      ownerName: 'Lisa Wagner',
+      ownerPhone: '+49-151-2345678',
+      ownerStreet: 'Eppendorfer Weg',
+      ownerHouseNumber: '42',
+      ownerZipCode: '20259',
+      ownerCity: 'Hamburg',
+    })
+    console.log(`  ✓ Owner: ${OWNER3_EMAIL} / ${OWNER3_PASSWORD} (Hamburg)`)
+  } catch (err: any) {
+    if (err.message?.includes('already exists')) {
+      console.log(`  ⚠ Owner account already exists: ${OWNER3_EMAIL}`)
+      const existing = await authService.getUserByEmail(OWNER3_EMAIL)
+      owner3UserId = existing!.userId
+    } else {
+      throw err
+    }
+  }
+
+  const OWNER4_EMAIL = 'markus.becker@beispiel.de'
+  const OWNER4_PASSWORD = 'Test1234!'
+  let owner4UserId: string
+  try {
+    const owner4 = await authService.signUp({
+      email: OWNER4_EMAIL,
+      password: OWNER4_PASSWORD,
+      userType: 'owner',
+    })
+    owner4UserId = owner4.userId
+    await authService.updateProfile(owner4UserId, {
+      ownerName: 'Markus Becker',
+      ownerPhone: '+49-160-4567890',
+      ownerStreet: 'Aachener Straße',
+      ownerHouseNumber: '88',
+      ownerZipCode: '50674',
+      ownerCity: 'Köln',
+    })
+    console.log(`  ✓ Owner: ${OWNER4_EMAIL} / ${OWNER4_PASSWORD} (Köln)`)
+  } catch (err: any) {
+    if (err.message?.includes('already exists')) {
+      console.log(`  ⚠ Owner account already exists: ${OWNER4_EMAIL}`)
+      const existing = await authService.getUserByEmail(OWNER4_EMAIL)
+      owner4UserId = existing!.userId
+    } else {
+      throw err
+    }
+  }
+
+  // Create pets for new owners
+  console.log('\n🐾 Creating pets for additional owners...')
+
+  // Lotte → owned by Thomas Schmidt in Berlin
+  const lotteBerlin = await petRepo.createMedicalProfile({
+    name: 'Lotte',
+    species: 'Dog',
+    breed: 'Dachshund',
+    age: 9,
+    clinicId: clinicBerlin.clinicId,
+    verifyingVetId: VET_ID,
+  })
+  await petRepo.claimProfile(lotteBerlin.petId, {
+    claimingCode: lotteBerlin.claimingCode,
+    ownerName: 'Thomas Schmidt',
+    ownerEmail: OWNER2_EMAIL,
+    ownerPhone: '+49-170-9876543',
+  }, owner2UserId)
+  await petRepo.update(lotteBerlin.petId, {
+    ownerStreet: 'Kastanienallee',
+    ownerHouseNumber: '15',
+    ownerZipCode: '10435',
+    ownerCity: 'Berlin',
+  })
+  await petRepo.setMissingStatus(lotteBerlin.petId, true)
+  console.log(`  ✓ Lotte (Dachshund, 9y) — MISSING, owned by Thomas Schmidt (Berlin)`)
+
+  // Susi → owned by Lisa Wagner in Hamburg
+  const susiHamburg = await petRepo.createMedicalProfile({
+    name: 'Susi',
+    species: 'Dog',
+    breed: 'English Setter/Labrador Mix',
+    age: 4,
+    clinicId: clinicHamburg.clinicId,
+    verifyingVetId: VET_ID,
+  })
+  await petRepo.claimProfile(susiHamburg.petId, {
+    claimingCode: susiHamburg.claimingCode,
+    ownerName: 'Lisa Wagner',
+    ownerEmail: OWNER3_EMAIL,
+    ownerPhone: '+49-151-2345678',
+  }, owner3UserId)
+  await petRepo.update(susiHamburg.petId, {
+    ownerStreet: 'Eppendorfer Weg',
+    ownerHouseNumber: '42',
+    ownerZipCode: '20259',
+    ownerCity: 'Hamburg',
+  })
+  await petRepo.setMissingStatus(susiHamburg.petId, true)
+  console.log(`  ✓ Susi (English Setter/Labrador Mix, 4y) — MISSING, owned by Lisa Wagner (Hamburg)`)
+
+  // Timmi → owned by Markus Becker in Köln
+  const timmiKoeln = await petRepo.createMedicalProfile({
+    name: 'Timmi',
+    species: 'Cat',
+    breed: 'Domestic Shorthair',
+    age: 6,
+    clinicId: clinicKoeln.clinicId,
+    verifyingVetId: VET_ID,
+  })
+  await petRepo.claimProfile(timmiKoeln.petId, {
+    claimingCode: timmiKoeln.claimingCode,
+    ownerName: 'Markus Becker',
+    ownerEmail: OWNER4_EMAIL,
+    ownerPhone: '+49-160-4567890',
+  }, owner4UserId)
+  await petRepo.update(timmiKoeln.petId, {
+    ownerStreet: 'Aachener Straße',
+    ownerHouseNumber: '88',
+    ownerZipCode: '50674',
+    ownerCity: 'Köln',
+  })
+  await petRepo.setMissingStatus(timmiKoeln.petId, true)
+  console.log(`  ✓ Timmi (Domestic Shorthair, 6y) — MISSING, owned by Markus Becker (Köln)`)
+
   // ── 3. Add medical records ───────────────────────────────────────────────
   console.log('\n💉 Adding medical records...')
 
@@ -356,19 +523,19 @@ async function seed() {
   })
   console.log('  ✓ Luna: RCP Impfung')
 
-  await petRepo.addVaccine(bella.petId, {
+  await petRepo.addVaccine(susiHamburg.petId, {
     vaccineName: 'Tollwut',
     administeredDate: '2024-01-20',
     nextDueDate: '2025-01-20',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addVaccine(bella.petId, {
+  await petRepo.addVaccine(susiHamburg.petId, {
     vaccineName: 'Leptospirose',
     administeredDate: '2024-01-20',
     nextDueDate: '2025-01-20',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addSurgery(bella.petId, {
+  await petRepo.addSurgery(susiHamburg.petId, {
     surgeryType: 'Zahnreinigung',
     surgeryDate: '2024-11-05',
     notes: 'Jährliche Zahnreinigung, zwei Zähne extrahiert',
@@ -377,13 +544,13 @@ async function seed() {
   })
   console.log('  ✓ Susi: Tollwut + Leptospirose Impfungen, Zahnreinigung')
 
-  await petRepo.addVaccine(simba.petId, {
+  await petRepo.addVaccine(timmiKoeln.petId, {
     vaccineName: 'RCP (Katzenschnupfen, Katzenseuche)',
     administeredDate: '2024-03-10',
     nextDueDate: '2025-03-10',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addVaccine(simba.petId, {
+  await petRepo.addVaccine(timmiKoeln.petId, {
     vaccineName: 'FeLV (Katzenleukämie)',
     administeredDate: '2024-03-10',
     nextDueDate: '2025-03-10',
@@ -391,13 +558,13 @@ async function seed() {
   })
   console.log('  ✓ Timmi: RCP + FeLV Impfungen')
 
-  await petRepo.addVaccine(lotte.petId, {
+  await petRepo.addVaccine(lotteBerlin.petId, {
     vaccineName: 'Tollwut',
     administeredDate: '2024-09-01',
     nextDueDate: '2025-09-01',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addSurgery(lotte.petId, {
+  await petRepo.addSurgery(lotteBerlin.petId, {
     surgeryType: 'Bandscheibenoperation',
     surgeryDate: '2024-04-20',
     notes: 'Bandscheibenvorfall L2-L3, minimalinvasiv',
@@ -410,22 +577,31 @@ async function seed() {
   console.log('\n' + '═'.repeat(60))
   console.log('✅ Seed data created successfully!\n')
   console.log('Test Accounts (Login Credentials):')
-  console.log(`  Tierarzt: ${VET_EMAIL} / ${VET_PASSWORD}`)
-  console.log(`  Besitzer: ${OWNER_EMAIL} / ${OWNER_PASSWORD}\n`)
+  console.log(`  Tierarzt:  ${VET_EMAIL} / ${VET_PASSWORD}`)
+  console.log(`  Besitzer (München): ${OWNER_EMAIL} / ${OWNER_PASSWORD}`)
+  console.log(`  Besitzer (Berlin):  ${OWNER2_EMAIL} / ${OWNER2_PASSWORD}`)
+  console.log(`  Besitzer (Hamburg):  ${OWNER3_EMAIL} / ${OWNER3_PASSWORD}`)
+  console.log(`  Besitzer (Köln):    ${OWNER4_EMAIL} / ${OWNER4_PASSWORD}\n`)
+  console.log('Clinics:')
+  console.log(`  Tierarztpraxis Pfötchen   — München  (48.14, 11.58)`)
+  console.log(`  Tierklinik am Volkspark   — Berlin   (52.55, 13.41)`)
+  console.log(`  Tierärzte Elbchaussee     — Hamburg   (53.55, 9.92)`)
+  console.log(`  Kleintierpraxis am Dom    — Köln     (50.94, 6.94)\n`)
   console.log('Pets:')
-  console.log(`  Balu   (Golden Retriever)            — Active`)
-  console.log(`  Luna   (Siamese)                     — MISSING ← visible in public search`)
-  console.log(`  Rex    (German Shepherd)              — MISSING ← visible in public search`)
+  console.log(`  Balu   (Golden Retriever)            — Active  (München, Anna Müller)`)
+  console.log(`  Luna   (Siamese)                     — MISSING (München, Anna Müller)`)
+  console.log(`  Rex    (German Shepherd)              — MISSING (München, Anna Müller)`)
   console.log(`  Minka  (Domestic Shorthair)           — Pending Claim (code: ${whiskers.claimingCode})`)
   console.log(`  Olive  (Ridgeback)                    — Pending Claim (code: ${charlie.claimingCode})`)
-  console.log(`  Susi   (English Setter/Labrador Mix)  — Active`)
-  console.log(`  Timmi  (Domestic Shorthair)           — Active`)
-  console.log(`  Nala   (Persian)                      — MISSING ← visible in public search`)
+  console.log(`  Nala   (Persian)                      — MISSING (München, Anna Müller)`)
   console.log(`  Askari (Australian Shepherd)          — Pending Claim (code: ${rocky.claimingCode})`)
-  console.log(`  Lotte  (Dachshund)                    — Active`)
+  console.log(`  Lotte  (Dachshund)                    — MISSING (Berlin, Thomas Schmidt)`)
+  console.log(`  Susi   (English Setter/Labrador Mix)  — MISSING (Hamburg, Lisa Wagner)`)
+  console.log(`  Timmi  (Domestic Shorthair)           — MISSING (Köln, Markus Becker)`)
   console.log('\nPublic Search:')
-  console.log('  Search for "Cat" or "Dog" to see missing pets.')
-  console.log('  Luna, Rex, and Nala will appear in results.\n')
+  console.log('  Search for "Dog" or "Cat" to see missing pets.')
+  console.log('  Search by location: Berlin, Hamburg, Köln, München (80331)')
+  console.log('  Luna, Rex, Nala (München), Lotte (Berlin), Susi (Hamburg), Timmi (Köln)\n')
   console.log('Claiming:')
   console.log(`  Use code "${whiskers.claimingCode}" to claim Minka`)
   console.log(`  Use code "${charlie.claimingCode}" to claim Olive`)

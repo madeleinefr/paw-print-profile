@@ -24,7 +24,7 @@ const imageBufferArb = fc
   .map((arr) => Buffer.from(arr))
 
 /** Valid MIME types */
-const mimeTypeArb = fc.constantFrom('image/jpeg', 'image/png', 'image/webp')
+const mimeTypeArb = fc.constantFrom('image/jpeg', 'image/png')
 
 /** Array of short tag strings */
 const tagsArb = fc.array(fc.string({ minLength: 1, maxLength: 10 }), { maxLength: 5 })

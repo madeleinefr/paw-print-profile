@@ -41,6 +41,7 @@ export interface SearchResult {
     address: string
     city: string
     state: string
+    distance?: number // Distance in km from search location (only present for location searches)
   }
   isMissing: boolean
   contactMethod?: 'platform_messaging' | 'owner_contact'
@@ -210,6 +211,9 @@ export class SearchService {
     const allResults: SearchResult[] = []
 
     for (const clinic of nearbyClinics) {
+      // Calculate distance from search point to this clinic
+      const clinicDistance = this.calculateDistance(latitude, longitude, clinic.latitude, clinic.longitude)
+
       // Get pets for this clinic
       let page = 1
       let hasMore = true
@@ -261,6 +265,7 @@ export class SearchService {
               address: clinic.address,
               city: clinic.city,
               state: clinic.state,
+              distance: Math.round(clinicDistance * 10) / 10, // Round to 1 decimal
             },
             isMissing: pet.isMissing,
           }
@@ -273,7 +278,25 @@ export class SearchService {
       }
     }
 
+    // Sort results by clinic distance (closest first)
+    allResults.sort((a, b) => (a.clinic.distance ?? Infinity) - (b.clinic.distance ?? Infinity))
+
     return allResults
+  }
+
+  /**
+   * Calculate distance between two points using Haversine formula (km)
+   */
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371 // Earth's radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLon = ((lon2 - lon1) * Math.PI) / 180
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
   }
 
   /**

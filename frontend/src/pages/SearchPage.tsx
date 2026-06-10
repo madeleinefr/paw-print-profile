@@ -1,17 +1,20 @@
 /**
  * SearchPage - Public lost pet search interface (no authentication required).
  *
- * Displays search filters for species, breed, and age range.
+ * Displays search filters for species, breed, age range, and location.
  * Results show pet photos, descriptions, and clinic contact information.
  * Owner contact info is hidden by default — uses anonymous contact form.
  * Only pets with 'Missing' status are returned.
+ *
+ * Location search supports city names and ZIP codes with configurable radius.
+ * Clinic distance is displayed in results when location is provided.
  *
  * Validates: [FR-11], [FR-12], [FR-15], [NFR-SEC-03]
  */
 
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Hospital, Phone, MapPin, Mail } from 'lucide-react'
+import { Hospital, Phone, MapPin, Mail, Navigation } from 'lucide-react'
 import { api, ApiException } from '../api/client'
 
 interface SearchResultImage {
@@ -25,6 +28,7 @@ interface SearchResultClinic {
   address: string
   city?: string
   state?: string
+  distance?: number
 }
 
 interface SearchResult {
@@ -40,17 +44,32 @@ interface SearchResult {
   messageUrl?: string
 }
 
+interface GeocodedLocation {
+  latitude: number
+  longitude: number
+  displayName: string
+}
+
 interface SearchResponse {
   results: SearchResult[]
   count: number
+  location?: GeocodedLocation
 }
 
+const RADIUS_OPTIONS = [
+  { value: '10', label: '10 km' },
+  { value: '25', label: '25 km' },
+  { value: '50', label: '50 km' },
+  { value: '100', label: '100 km' },
+]
+
 export function SearchPage() {
-  const [filters, setFilters] = useState({ species: '', breed: '', ageMin: '', ageMax: '', tags: '' })
+  const [filters, setFilters] = useState({ species: '', breed: '', ageMin: '', ageMax: '', tags: '', location: '', radius: '25' })
   const [results, setResults] = useState<SearchResult[]>([])
   const [searched, setSearched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null)
 
   function updateFilter(field: string, value: string) {
     setFilters((prev) => ({ ...prev, [field]: value }))
@@ -61,6 +80,7 @@ export function SearchPage() {
     setLoading(true)
     setError(null)
     setSearched(true)
+    setGeocodedLocation(null)
 
     try {
       const params: Record<string, string> = {}
@@ -70,8 +90,22 @@ export function SearchPage() {
       if (filters.ageMax.trim()) params.ageMax = filters.ageMax.trim()
       if (filters.tags.trim()) params.tags = filters.tags.trim()
 
+      // Add location parameters if provided
+      if (filters.location.trim()) {
+        params.location = filters.location.trim()
+        params.radius = filters.radius
+      }
+
       const data = await api.get<SearchResponse>('/search/pets', params)
-      setResults(data.results || [])
+
+      let searchResults = data.results || []
+
+      // Store geocoded location for display purposes
+      if (data.location) {
+        setGeocodedLocation(data.location)
+      }
+
+      setResults(searchResults)
     } catch (err) {
       setError(err instanceof ApiException ? err.error.message : 'Search failed. Please try again.')
     } finally {
@@ -80,10 +114,11 @@ export function SearchPage() {
   }
 
   function handleClear() {
-    setFilters({ species: '', breed: '', ageMin: '', ageMax: '', tags: '' })
+    setFilters({ species: '', breed: '', ageMin: '', ageMax: '', tags: '', location: '', radius: '25' })
     setResults([])
     setSearched(false)
     setError(null)
+    setGeocodedLocation(null)
   }
 
   return (
@@ -141,6 +176,30 @@ export function SearchPage() {
             aria-label="Tags"
           />
         </div>
+
+        {/* Location search [FR-11][FR-12] */}
+        <div className="form-row">
+          <input
+            placeholder="City or ZIP code (e.g., Berlin, 80331)"
+            value={filters.location}
+            onChange={(e) => updateFilter('location', e.target.value)}
+            aria-label="City or ZIP code"
+            style={{ flex: 2 }}
+          />
+          <select
+            value={filters.radius}
+            onChange={(e) => updateFilter('radius', e.target.value)}
+            aria-label="Search radius"
+            style={{ flex: 1 }}
+          >
+            {RADIUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
           <button type="submit" disabled={loading}>
             {loading ? 'Searching...' : 'Search'}
@@ -152,6 +211,14 @@ export function SearchPage() {
       </form>
 
       {error && <p style={{ color: '#c33', marginBottom: '15px' }}>{error}</p>}
+
+      {/* Location info banner */}
+      {geocodedLocation && searched && !loading && (
+        <div style={{ background: '#f0f9f4', border: '1px solid #b2dfdb', borderRadius: '8px', padding: '10px 16px', marginBottom: '16px', fontSize: '0.85rem', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Navigation size={16} />
+          Searching within {filters.radius} km of {geocodedLocation.displayName}
+        </div>
+      )}
 
       {/* Privacy notice [FR-15] */}
       {searched && (
@@ -218,6 +285,15 @@ export function SearchPage() {
                 <p style={{ fontWeight: 600, marginBottom: '4px', color: '#333' }}><Hospital size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />{pet.clinic.name}</p>
                 <p><Phone size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />{pet.clinic.phone}</p>
                 <p><MapPin size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />{pet.clinic.address}{pet.clinic.city ? `, ${pet.clinic.city}` : ''}{pet.clinic.state ? `, ${pet.clinic.state}` : ''}</p>
+                {/* Display distance when location search is active */}
+                {geocodedLocation && pet.clinic.distance !== undefined && (
+                  <p style={{ color: '#666', fontSize: '0.85rem', marginTop: '4px' }}>
+                    <Navigation size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                    {pet.clinic.distance < 1
+                      ? `${Math.round(pet.clinic.distance * 1000)} m away`
+                      : `${pet.clinic.distance} km away`}
+                  </p>
+                )}
               </div>
 
               {/* Anonymous contact [FR-15] */}
