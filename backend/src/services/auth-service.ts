@@ -86,6 +86,10 @@ export class AuthService {
    *
    * In local development (LocalStack), the user is auto-confirmed.
    *
+   * @param input - Sign-up details (email, password, userType, optional clinicId)
+   * @returns The created AuthUser with userId, email, and role
+   * @throws AuthError if input is invalid or Cognito rejects the sign-up
+   *
    * Requirements: [NFR-SEC-01]
    */
   async signUp(input: SignUpInput): Promise<AuthUser> {
@@ -154,6 +158,11 @@ export class AuthService {
    * Uses USER_PASSWORD_AUTH flow. Returns access, ID, and refresh tokens.
    * The ID token contains custom:userType and custom:clinicId claims.
    *
+   * @param email - User's email address
+   * @param password - User's password
+   * @returns JWT tokens (access, ID, refresh) and expiry
+   * @throws AuthError if credentials are invalid or user not confirmed
+   *
    * Requirements: [NFR-SEC-01]
    */
   async signIn(email: string, password: string): Promise<AuthTokens> {
@@ -205,6 +214,9 @@ export class AuthService {
    * Retrieves user attributes including userType and clinicId
    * from Cognito using the access token.
    *
+   * @param accessToken - Valid Cognito access token
+   * @returns AuthUser with role info, or null if token is invalid/expired
+   *
    * Requirements: [NFR-SEC-02]
    */
   async getCurrentUser(accessToken: string): Promise<AuthUser | null> {
@@ -234,6 +246,10 @@ export class AuthService {
    *
    * Returns new access and ID tokens. The refresh token itself
    * is not rotated (Cognito default behavior).
+   *
+   * @param refreshToken - Valid Cognito refresh token
+   * @returns New access and ID tokens with expiry
+   * @throws AuthError if refresh token is invalid or expired
    *
    * Requirements: [NFR-SEC-01]
    */
@@ -272,6 +288,8 @@ export class AuthService {
 
   /**
    * Sign out the user globally, invalidating all tokens.
+   *
+   * @param accessToken - The user's current access token
    */
   async signOut(accessToken: string): Promise<void> {
     if (!accessToken) return
@@ -288,6 +306,9 @@ export class AuthService {
   /**
    * Get user info by username (admin operation).
    * Used internally for authorization checks.
+   *
+   * @param email - The user's email/username
+   * @returns AuthUser or null if not found
    */
   async getUserByEmail(email: string): Promise<AuthUser | null> {
     if (!email) return null

@@ -21,6 +21,9 @@ export class GeocodingService {
   /**
    * Geocode a German city name or PLZ to latitude/longitude coordinates.
    * Returns null if the location cannot be resolved.
+   *
+   * @param location - A city name (e.g., "München") or 5-digit PLZ (e.g., "80331")
+   * @returns Coordinates and display name, or null if geocoding fails
    */
   async geocode(location: string): Promise<GeocodingResult | null> {
     if (!location || location.trim().length === 0) {
@@ -134,6 +137,9 @@ export class GeocodingService {
   /**
    * Check if a string looks like a German postal code (PLZ).
    * German PLZ are exactly 5 digits.
+   *
+   * @param input - String to check
+   * @returns True if the input is a valid 5-digit PLZ format
    */
   isZipCode(input: string): boolean {
     return /^\d{5}$/.test(input.trim())

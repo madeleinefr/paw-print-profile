@@ -14,28 +14,45 @@ import { ArrowLeft, Hospital, Phone, MapPin, Mail, Tag } from 'lucide-react'
 import { api, ApiException } from '../../api/client'
 
 interface PetImage {
+  /** Fully-qualified image URL */
   url: string
+  /** Descriptive tags for the image (e.g., "brown", "white-paws") */
   tags: string[]
 }
 
 interface PetClinic {
+  /** Clinic display name */
   name: string
+  /** Clinic phone number */
   phone: string
+  /** Street address */
   address: string
+  /** City name */
   city?: string
+  /** State or region */
   state?: string
 }
 
 interface PetDetail {
+  /** Unique pet identifier */
   petId: string
+  /** Pet's display name */
   name: string
+  /** e.g., "Dog", "Cat" */
   species: string
+  /** Breed description */
   breed: string
+  /** Age in years */
   age: number
+  /** Associated pet images */
   images: PetImage[]
+  /** Registered veterinary clinic */
   clinic: PetClinic
+  /** Whether the pet is currently missing */
   isMissing: boolean
+  /** Owner's chosen contact method */
   contactMethod: string
+  /** URL for the anonymous contact form */
   messageUrl: string
 }
 

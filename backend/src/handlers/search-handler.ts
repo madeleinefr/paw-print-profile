@@ -14,7 +14,11 @@ const searchService = new SearchService()
 const geocodingService = new GeocodingService()
 
 /**
- * Main Lambda handler for search endpoints
+ * Main Lambda handler for search endpoints.
+ *
+ * @param event - API Gateway proxy event with query string parameters for search criteria
+ * @returns API Gateway proxy result with CORS headers and JSON response body
+ * @throws Errors are caught and converted via ErrorHandler.toResponse()
  */
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Search Handler - Event:', JSON.stringify(event, null, 2))

@@ -101,6 +101,9 @@ export class NotificationService {
    * Notifies the clinic that a new pet profile was created and includes
    * the claiming code for the pet owner.
    *
+   * @param input - Onboarding data (pet, clinic, claiming code)
+   * @returns Notification result with success flag and message ID
+   *
    * Requirements: [FR-03]
    */
   async sendPetOnboardingConfirmation(
@@ -167,6 +170,9 @@ export class NotificationService {
    *
    * Notifies the owner that a vaccine is due soon.
    *
+   * @param input - Reminder data (pet, vaccine, owner email, days until due)
+   * @returns Notification result with success flag and message ID
+   *
    * Requirements: [FR-06]
    */
   async sendAppointmentReminder(
@@ -230,6 +236,9 @@ export class NotificationService {
    *
    * Publishes a structured alert to each nearby clinic so they can
    * watch for the missing pet.
+   *
+   * @param input - Alert data (pet, nearby clinics, search radius, location)
+   * @returns Notification result with recipient count
    *
    * Requirements: [FR-08], [NFR-ARCH-01]
    */
@@ -314,6 +323,9 @@ export class NotificationService {
    * Notifies clinics that a missing pet has been found so they can
    * stop watching for it.
    *
+   * @param input - Found notification data (pet, previously alerted clinics)
+   * @returns Notification result with recipient count
+   *
    * Requirements: [FR-10]
    */
   async sendPetFoundNotification(
@@ -392,6 +404,9 @@ export class NotificationService {
    *
    * Delivers an anonymous message from a public user to the pet owner
    * without exposing the owner's email to the sender.
+   *
+   * @param input - Contact message data (pet name, owner email, sender info, message)
+   * @returns Notification result with success flag
    *
    * Requirements: [FR-15]
    */

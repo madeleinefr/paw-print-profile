@@ -60,8 +60,11 @@ export class SearchService {
   }
 
   /**
-   * Search for pets using various criteria
-   * Returns results with images, owner contact, and clinic details
+   * Search for pets using various criteria.
+   * Returns results with images, owner contact, and clinic details.
+   *
+   * @param criteria - Search filters (species, breed, age range, tags)
+   * @returns Array of search results with pet, clinic, and image data
    */
   async search(criteria: SearchCriteria): Promise<SearchResult[]> {
     // Validate search criteria
@@ -119,7 +122,10 @@ export class SearchService {
   }
 
   /**
-   * Search specifically for missing pets
+   * Search specifically for missing pets.
+   *
+   * @param criteria - Search filters
+   * @returns Array of search results filtered to isMissing === true
    */
   async searchMissingPets(criteria: SearchCriteria): Promise<SearchResult[]> {
     const allResults = await this.search(criteria)
@@ -132,6 +138,9 @@ export class SearchService {
    * - Filters results to isMissing === true
    * - Strips owner phone/email unless the pet record explicitly allows sharing
    * - Adds contactMethod and messageUrl for anonymous platform messaging
+   *
+   * @param criteria - Search filters (species, breed, age range, tags)
+   * @returns Array of search results with owner contact masked
    */
   async searchPublic(criteria: SearchCriteria): Promise<SearchResult[]> {
     const missingResults = await this.searchMissingPets(criteria)
@@ -146,7 +155,10 @@ export class SearchService {
   }
 
   /**
-   * Get pet details for search result (public endpoint)
+   * Get pet details for search result (public endpoint).
+   *
+   * @param petId - The pet's unique identifier
+   * @returns Full search result details or null if pet/clinic not found
    */
   async getPetDetails(petId: string): Promise<SearchResult | null> {
     const pet = await this.petRepo.findById(petId)
@@ -192,7 +204,13 @@ export class SearchService {
   }
 
   /**
-   * Search pets by location (within radius of given coordinates)
+   * Search pets by location (within radius of given coordinates).
+   *
+   * @param latitude - Center point latitude
+   * @param longitude - Center point longitude
+   * @param radiusKm - Search radius in kilometers
+   * @param additionalCriteria - Optional extra filters (species, breed, age)
+   * @returns Array of search results sorted by distance (closest first)
    */
   async searchByLocation(
     latitude: number,
@@ -300,7 +318,10 @@ export class SearchService {
   }
 
   /**
-   * Get search suggestions based on partial input
+   * Get search suggestions based on partial input.
+   *
+   * @param partialQuery - At least 2 characters of user input
+   * @returns Object with matching species and breed suggestion arrays (max 10 each)
    */
   async getSearchSuggestions(partialQuery: string): Promise<{
     species: string[]
@@ -335,7 +356,9 @@ export class SearchService {
   }
 
   /**
-   * Get popular search terms (for search analytics)
+   * Get popular search terms (for search analytics).
+   *
+   * @returns Object with popular species and breeds sorted by frequency
    */
   async getPopularSearchTerms(): Promise<{
     species: { name: string; count: number }[]

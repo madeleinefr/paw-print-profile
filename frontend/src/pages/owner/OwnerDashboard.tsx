@@ -10,15 +10,25 @@ import { Lock, FileText } from 'lucide-react'
 import { api, ApiException } from '../../api/client'
 
 interface PetSummary {
+  /** Unique pet identifier */
   petId: string
+  /** Pet's display name */
   name: string
+  /** e.g., "Dog", "Cat" */
   species: string
+  /** Breed description */
   breed: string
+  /** Age in years */
   age: number
+  /** Current profile status (e.g., "Active", "Pending") */
   profileStatus: string
+  /** Whether the pet is currently reported missing */
   isMissing: boolean
+  /** Owner's full name */
   ownerName?: string
+  /** Owner's email address */
   ownerEmail?: string
+  /** Owner's phone number */
   ownerPhone?: string
 }
 

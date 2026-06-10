@@ -11,19 +11,30 @@ import { api, ApiException } from '../../api/client'
 import { ImageUpload, ImageGallery } from '../../components/ImageUpload'
 
 interface VaccineRecord {
+  /** Unique vaccine record identifier */
   vaccineId: string
+  /** Name of the vaccine administered */
   vaccineName: string
+  /** ISO date when the vaccine was given */
   administeredDate: string
+  /** ISO date when the next dose is due */
   nextDueDate: string
+  /** Name of the administering veterinarian */
   veterinarianName: string
 }
 
 interface SurgeryRecord {
+  /** Unique surgery record identifier */
   surgeryId: string
+  /** Type/name of the surgical procedure */
   surgeryType: string
+  /** ISO date of the surgery */
   surgeryDate: string
+  /** Additional clinical notes */
   notes: string
+  /** Post-operative recovery instructions */
   recoveryInfo: string
+  /** Name of the performing veterinarian */
   veterinarianName: string
 }
 

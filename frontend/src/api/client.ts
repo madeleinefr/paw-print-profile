@@ -33,6 +33,14 @@ let currentUserType: 'vet' | 'owner' | null = null
 let currentUserId: string | null = null
 let currentClinicId: string | null = null
 
+/**
+ * Set the authentication state for all subsequent API calls.
+ *
+ * @param token - JWT access token (sent as Bearer header)
+ * @param userType - User role ('vet' or 'owner')
+ * @param userId - Authenticated user's ID
+ * @param clinicId - Optional clinic ID (for veterinarians)
+ */
 export function setAuth(token: string, userType: 'vet' | 'owner', userId: string, clinicId?: string) {
   authToken = token
   currentUserType = userType
@@ -40,6 +48,9 @@ export function setAuth(token: string, userType: 'vet' | 'owner', userId: string
   currentClinicId = clinicId ?? null
 }
 
+/**
+ * Clear all stored authentication state.
+ */
 export function clearAuth() {
   authToken = null
   currentUserType = null
@@ -47,6 +58,11 @@ export function clearAuth() {
   currentClinicId = null
 }
 
+/**
+ * Get the current authentication state.
+ *
+ * @returns Object with authToken, userType, userId, and clinicId (all nullable)
+ */
 export function getAuth() {
   return { authToken, userType: currentUserType, userId: currentUserId, clinicId: currentClinicId }
 }
@@ -74,6 +90,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const api = {
+  /**
+   * Send a GET request to the backend API.
+   *
+   * @param endpoint - API path (e.g., "/pets/123")
+   * @param params - Optional query string parameters
+   * @returns Parsed JSON response body
+   * @throws ApiException if the server returns a non-2xx status
+   */
   async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
     const url = new URL(`${API_BASE_URL}${endpoint}`)
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
@@ -81,6 +105,14 @@ export const api = {
     return handleResponse<T>(response)
   },
 
+  /**
+   * Send a POST request to the backend API.
+   *
+   * @param endpoint - API path (e.g., "/pets")
+   * @param body - Request body (will be JSON-serialized)
+   * @returns Parsed JSON response body
+   * @throws ApiException if the server returns a non-2xx status
+   */
   async post<T>(endpoint: string, body?: unknown): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
@@ -90,6 +122,14 @@ export const api = {
     return handleResponse<T>(response)
   },
 
+  /**
+   * Send a PUT request to the backend API.
+   *
+   * @param endpoint - API path (e.g., "/pets/123")
+   * @param body - Request body (will be JSON-serialized)
+   * @returns Parsed JSON response body
+   * @throws ApiException if the server returns a non-2xx status
+   */
   async put<T>(endpoint: string, body?: unknown): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',
@@ -99,6 +139,13 @@ export const api = {
     return handleResponse<T>(response)
   },
 
+  /**
+   * Send a DELETE request to the backend API.
+   *
+   * @param endpoint - API path (e.g., "/pets/123")
+   * @returns Parsed JSON response body (or undefined for 204)
+   * @throws ApiException if the server returns a non-2xx status
+   */
   async delete<T>(endpoint: string): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',

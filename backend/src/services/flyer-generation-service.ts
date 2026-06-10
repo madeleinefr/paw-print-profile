@@ -79,6 +79,12 @@ export class FlyerGenerationService {
    * Privacy: Owner contact is only shown if explicitly selected via contactMethod.
    * If contactMethod is 'clinic', only clinic details are shown.
    *
+   * @param pet - The missing pet record
+   * @param clinic - The pet's clinic (for contact info), or null
+   * @param images - Pet images (first image embedded in flyer; tags shown as features)
+   * @param input - Flyer input with last seen location, notes, and contact method
+   * @returns Object with S3 signed URL, S3 key, and generation timestamp
+   *
    * Requirements: [FR-09], [FR-15], [NFR-USA-01]
    */
   async generateFlyer(
@@ -129,6 +135,13 @@ export class FlyerGenerationService {
   /**
    * Build the PDF buffer for a missing pet flyer.
    * Letter size: 612 x 792 points (8.5" x 11" at 72 DPI)
+   *
+   * @param pet - The missing pet record
+   * @param clinic - The pet's clinic, or null
+   * @param images - Pet images for tags/features
+   * @param input - Flyer input with location and contact method
+   * @param petImageBuffer - Optional pre-fetched pet image buffer to embed
+   * @returns PDF buffer
    */
   buildFlyerPdf(
     pet: Pet,
@@ -257,6 +270,9 @@ export class FlyerGenerationService {
    * Fetch the first available pet image from S3 as a Buffer.
    * Converts to PNG for PDFKit compatibility (PDFKit doesn't support WebP).
    * Returns null if no images exist or if the fetch fails.
+   *
+   * @param images - Array of pet image records to try fetching
+   * @returns Image buffer or null if unavailable
    */
   async fetchPetImage(images: PetImage[]): Promise<Buffer | null> {
     if (!images || images.length === 0) {
@@ -290,6 +306,9 @@ export class FlyerGenerationService {
   /**
    * Build a human-readable pet description string.
    * Includes species, breed, and age.
+   *
+   * @param pet - The pet record
+   * @returns Formatted description (e.g., "Dog • Golden Retriever • 3 years old")
    */
   buildPetDescription(pet: Pet): string {
     const parts: string[] = []
@@ -309,6 +328,11 @@ export class FlyerGenerationService {
    * explicitly selects 'phone' or 'email' as their contact method.
    * If 'clinic' is selected, only clinic details are shown.
    * If no valid contact info is available, falls back to platform messaging.
+   *
+   * @param pet - The pet record (for owner phone/email)
+   * @param clinic - The clinic record (for clinic contact), or null
+   * @param contactMethod - Owner's selected method: 'phone', 'email', or 'clinic'
+   * @returns Formatted contact string for the flyer
    *
    * Requirements: [FR-08] AC2, [FR-15]
    */

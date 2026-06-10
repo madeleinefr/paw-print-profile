@@ -51,7 +51,10 @@ export class ImageRepository {
   }
 
   /**
-   * Upload an image to S3 and store metadata in DynamoDB
+   * Upload an image to S3 and store metadata in DynamoDB.
+   *
+   * @param input - Upload details including petId, imageBuffer, mimeType, and tags
+   * @returns The created PetImage record with generated imageId and S3 reference
    */
   async upload(input: UploadImageInput): Promise<PetImage> {
     const imageId = uuidv4()
@@ -101,7 +104,10 @@ export class ImageRepository {
   /**
    * Generate a pre-signed S3 PUT URL for direct browser upload.
    * Also stores the image metadata in DynamoDB immediately.
-   * The client uploads directly to S3 using the returned URL.
+   * The client uploads directly to S3 using the returned URL (bypasses API Gateway 10MB limit).
+   *
+   * @param input - Object with petId, mimeType, and tags
+   * @returns Pre-signed upload URL (valid 15 min) and the created image metadata
    */
   async generateUploadUrl(input: { petId: string; mimeType: string; tags: string[] }): Promise<{ uploadUrl: string; image: PetImage }> {
     const imageId = uuidv4()
@@ -142,7 +148,12 @@ export class ImageRepository {
   }
 
   /**
-   * Generate a pre-signed S3 URL for an image (expires in 1 hour)
+   * Generate a pre-signed S3 GET URL for an image (expires in 1 hour).
+   *
+   * @param imageId - The image's unique identifier
+   * @param petId - The pet the image belongs to
+   * @returns A publicly accessible signed URL for the image
+   * @throws Error if the image metadata is not found in DynamoDB
    */
   async getUrl(imageId: string, petId: string): Promise<string> {
     const result = await this.docClient.send(
@@ -183,7 +194,10 @@ export class ImageRepository {
   }
 
   /**
-   * Find all images for a pet
+   * Find all images for a pet using Query with SK begins_with "IMAGE#".
+   *
+   * @param petId - The pet to query images for
+   * @returns Array of image metadata records
    */
   async findByPet(petId: string): Promise<PetImage[]> {
     const response = await this.docClient.send(
@@ -201,7 +215,11 @@ export class ImageRepository {
   }
 
   /**
-   * Delete an image from S3 and remove its DynamoDB metadata record
+   * Delete an image from S3 and remove its DynamoDB metadata record.
+   *
+   * @param imageId - The image's unique identifier
+   * @param petId - The pet the image belongs to
+   * @throws Error if the image metadata is not found in DynamoDB
    */
   async delete(imageId: string, petId: string): Promise<void> {
     const result = await this.docClient.send(

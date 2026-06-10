@@ -36,7 +36,11 @@ const CORS_HEADERS = {
 }
 
 /**
- * Main Lambda handler for pet co-onboarding endpoints
+ * Main Lambda handler for pet co-onboarding endpoints.
+ *
+ * @param event - API Gateway proxy event with path, method, auth headers, and body
+ * @returns API Gateway proxy result with CORS headers and JSON response body
+ * @throws Errors are caught and converted via ErrorHandler.toResponse()
  */
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Pet Co-Onboarding Handler - Event:', JSON.stringify(event, null, 2))

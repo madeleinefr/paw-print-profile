@@ -37,6 +37,9 @@ export class AuthorizationService {
    * Can the user create a new medical pet profile?
    * Only veterinarians can create medically verified profiles.
    *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @returns Authorization result with allowed flag and denial reason
+   *
    * Requirements: [FR-03], [NFR-SEC-02]
    */
   canCreatePet(user: AuthUser | null): AuthorizationResult {
@@ -49,6 +52,10 @@ export class AuthorizationService {
   /**
    * Can the user claim a pet profile?
    * Only pet owners can claim unclaimed profiles.
+   *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to claim, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
    *
    * Requirements: [FR-04], [NFR-SEC-02]
    */
@@ -65,6 +72,10 @@ export class AuthorizationService {
    * Can the user access a pet's details?
    * - Vets can access pets from their own clinic
    * - Owners can access their own claimed pets
+   *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to access, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
    *
    * Requirements: [NFR-SEC-02]
    */
@@ -93,6 +104,10 @@ export class AuthorizationService {
    * Can the user modify medical data (vaccines, surgeries, medical fields)?
    * Only veterinarians from the pet's clinic can modify medical data.
    *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to modify, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
+   *
    * Requirements: [FR-06], [FR-07], [NFR-SEC-02]
    */
   canModifyMedicalData(user: AuthUser | null, pet: Pet | null): AuthorizationResult {
@@ -109,6 +124,10 @@ export class AuthorizationService {
    * Can the user enrich a pet profile with personal data (photos, preferences)?
    * Only the pet's owner can enrich a claimed profile.
    *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to enrich, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
+   *
    * Requirements: [FR-05], [NFR-SEC-02]
    */
   canEnrichProfile(user: AuthUser | null, pet: Pet | null): AuthorizationResult {
@@ -123,6 +142,10 @@ export class AuthorizationService {
   /**
    * Can the user create a care snapshot for a pet?
    * Only the pet's owner can create care snapshots.
+   *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to create a snapshot for, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
    *
    * Requirements: [FR-13], [NFR-SEC-02]
    */
@@ -139,6 +162,10 @@ export class AuthorizationService {
    * Can the user access a clinic's data?
    * Only veterinarians associated with the clinic can access it.
    *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param clinicId - The clinic ID to check access for
+   * @returns Authorization result with allowed flag and denial reason
+   *
    * Requirements: [NFR-SEC-02]
    */
   canAccessClinic(user: AuthUser | null, clinicId: string): AuthorizationResult {
@@ -151,6 +178,10 @@ export class AuthorizationService {
   /**
    * Can the user report a pet as missing?
    * Only the pet's owner can report it missing.
+   *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to report, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
    *
    * Requirements: [FR-08], [NFR-SEC-02]
    */
@@ -167,6 +198,10 @@ export class AuthorizationService {
   /**
    * Can the user delete a pet profile?
    * Only veterinarians from the pet's clinic can delete profiles.
+   *
+   * @param user - The authenticated user, or null if unauthenticated
+   * @param pet - The pet to delete, or null if not found
+   * @returns Authorization result with allowed flag and denial reason
    *
    * Requirements: [NFR-SEC-02]
    */

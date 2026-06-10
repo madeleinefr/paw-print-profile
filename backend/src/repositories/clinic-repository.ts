@@ -35,7 +35,11 @@ export class ClinicRepository {
   }
 
   /**
-   * Create a new clinic record
+   * Create a new clinic record in DynamoDB.
+   * Generates a UUID for clinicId and sets up GSI1 for license number lookup.
+   *
+   * @param input - Clinic details (name, address, phone, license number, coordinates)
+   * @returns The created clinic record with generated clinicId
    */
   async create(input: CreateClinicInput): Promise<Clinic> {
     const clinicId = uuidv4()
@@ -74,7 +78,10 @@ export class ClinicRepository {
   }
 
   /**
-   * Find a clinic by ID
+   * Find a clinic by ID using DynamoDB GetItem.
+   *
+   * @param clinicId - The clinic's unique identifier
+   * @returns The clinic record or null if not found
    */
   async findById(clinicId: string): Promise<Clinic | null> {
     const command = new GetCommand({
@@ -90,7 +97,10 @@ export class ClinicRepository {
   }
 
   /**
-   * Find a clinic by license number using GSI1
+   * Find a clinic by license number using GSI1 query.
+   *
+   * @param licenseNumber - The clinic's veterinary license number
+   * @returns The clinic record or null if not found
    */
   async findByLicenseNumber(licenseNumber: string): Promise<Clinic | null> {
     const command = new QueryCommand({
@@ -109,7 +119,12 @@ export class ClinicRepository {
   }
 
   /**
-   * Update a clinic record
+   * Update a clinic record with dynamic field updates.
+   * Handles reserved keyword escaping for "name" and "state".
+   *
+   * @param clinicId - The clinic to update
+   * @param updates - Partial fields to update
+   * @returns The fully updated clinic record (ReturnValues: ALL_NEW)
    */
   async update(clinicId: string, updates: UpdateClinicInput): Promise<Clinic> {
     const now = new Date().toISOString()
@@ -196,7 +211,9 @@ export class ClinicRepository {
   }
 
   /**
-   * Delete a clinic record
+   * Delete a clinic record from DynamoDB.
+   *
+   * @param clinicId - The clinic to delete
    */
   async delete(clinicId: string): Promise<void> {
     const command = new DeleteCommand({
@@ -211,8 +228,13 @@ export class ClinicRepository {
   }
 
   /**
-   * Find nearby clinics within a radius (simplified implementation)
-   * In a production system, this would use geospatial indexing
+   * Find nearby clinics within a radius using Haversine distance calculation.
+   * Uses a full table scan and in-memory filtering (no geospatial index).
+   *
+   * @param latitude - Center point latitude
+   * @param longitude - Center point longitude
+   * @param radiusKm - Search radius in kilometers
+   * @returns Array of clinics within the specified radius
    */
   async findNearby(latitude: number, longitude: number, radiusKm: number): Promise<Clinic[]> {
     

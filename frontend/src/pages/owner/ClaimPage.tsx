@@ -9,11 +9,17 @@ import { api, ApiException } from '../../api/client'
 import { useAuth } from '../../auth/AuthContext'
 
 interface ClaimResult {
+  /** Unique pet identifier */
   petId: string
+  /** Pet's display name */
   name: string
+  /** Profile status after claiming (e.g., "Active") */
   profileStatus: string
+  /** ID of the new owner */
   ownerId: string
+  /** Name of the claiming owner */
   ownerName: string
+  /** ISO timestamp when the profile was claimed */
   claimedAt: string
 }
 

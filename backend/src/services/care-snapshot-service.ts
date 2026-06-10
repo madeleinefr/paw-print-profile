@@ -38,6 +38,11 @@ export class CareSnapshotService {
    * [FR-13] Sensitive medical details (vaccines, surgeries, diagnoses)
    * are intentionally excluded. The snapshot only contains owner-provided
    * care instructions, feeding schedule, medications, and emergency contacts.
+   *
+   * @param input - Snapshot data (petId, care instructions, feeding, medications, expiry hours)
+   * @param ownerId - The authenticated owner's user ID
+   * @returns Snapshot response with access code, URL, and expiry date
+   * @throws ValidationException if input is invalid, pet not found, or not owned by user
    */
   async generateCareSnapshot(input: CreateCareSnapshotInput, ownerId: string): Promise<CareSnapshotResponse> {
     // Validate input data
@@ -84,7 +89,11 @@ export class CareSnapshotService {
   }
 
   /**
-   * Access a care snapshot using access code (public access)
+   * Access a care snapshot using access code (public access).
+   * Records the access for audit purposes.
+   *
+   * @param accessCode - The time-limited access code (e.g., "CARE-AB12CD34")
+   * @returns The care snapshot record, or null if not found/expired
    */
   async accessCareSnapshot(accessCode: string): Promise<CareSnapshot | null> {
     if (!accessCode || accessCode.trim().length === 0) {
@@ -110,7 +119,10 @@ export class CareSnapshotService {
   }
 
   /**
-   * Validate access code without recording access
+   * Validate access code without recording access.
+   *
+   * @param accessCode - The time-limited access code to validate
+   * @returns Object with valid flag, snapshot if valid, or error message
    */
   async validateAccessCode(accessCode: string): Promise<{ valid: boolean; snapshot?: CareSnapshot; error?: string }> {
     if (!accessCode || accessCode.trim().length === 0) {
@@ -127,7 +139,12 @@ export class CareSnapshotService {
   }
 
   /**
-   * Get all care snapshots for a pet (owner only)
+   * Get all care snapshots for a pet (owner only).
+   *
+   * @param petId - The pet to query snapshots for
+   * @param ownerId - The authenticated owner's user ID
+   * @returns Array of care snapshot records
+   * @throws ValidationException if pet not found or not owned by user
    */
   async getCareSnapshotsForPet(petId: string, ownerId: string): Promise<CareSnapshot[]> {
     // Verify pet exists and is owned by the user
@@ -148,7 +165,9 @@ export class CareSnapshotService {
   }
 
   /**
-   * Delete an expired care snapshot
+   * Delete an expired care snapshot.
+   *
+   * @param snapshotId - The snapshot to check and delete if expired
    */
   async deleteExpiredSnapshot(snapshotId: string): Promise<void> {
     const snapshot = await this.snapshotRepo.findById(snapshotId)
@@ -164,7 +183,9 @@ export class CareSnapshotService {
   }
 
   /**
-   * Cleanup expired care snapshots (maintenance function)
+   * Cleanup expired care snapshots (maintenance function).
+   *
+   * @returns Count of snapshots cleaned up
    */
   async cleanupExpiredSnapshots(): Promise<number> {
     // This would typically be called by a scheduled job

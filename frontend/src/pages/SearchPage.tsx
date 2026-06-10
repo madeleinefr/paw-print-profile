@@ -18,35 +18,56 @@ import { Hospital, Phone, MapPin, Mail, Navigation } from 'lucide-react'
 import { api, ApiException } from '../api/client'
 
 interface SearchResultImage {
+  /** Fully-qualified image URL */
   url: string
+  /** Descriptive tags for the image (e.g., "brown", "floppy-ears") */
   tags: string[]
 }
 
 interface SearchResultClinic {
+  /** Clinic display name */
   name: string
+  /** Clinic phone number */
   phone: string
+  /** Street address */
   address: string
+  /** City name */
   city?: string
+  /** State or region */
   state?: string
+  /** Distance from search location in km */
   distance?: number
 }
 
 interface SearchResult {
+  /** Unique pet identifier */
   petId: string
+  /** Pet's display name */
   name: string
+  /** e.g., "Dog", "Cat" */
   species: string
+  /** Breed description */
   breed: string
+  /** Age in years */
   age: number
+  /** Associated pet images */
   images: SearchResultImage[]
+  /** Registered veterinary clinic */
   clinic: SearchResultClinic
+  /** Whether the pet is currently missing */
   isMissing: boolean
+  /** Owner's chosen contact method (phone, email, clinic) */
   contactMethod?: string
+  /** URL for anonymous contact form */
   messageUrl?: string
 }
 
 interface GeocodedLocation {
+  /** Latitude coordinate */
   latitude: number
+  /** Longitude coordinate */
   longitude: number
+  /** Human-readable location label */
   displayName: string
 }
 

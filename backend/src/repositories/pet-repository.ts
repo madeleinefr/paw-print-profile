@@ -46,7 +46,12 @@ export class PetRepository {
   }
 
   /**
-   * Create a medical pet profile (veterinarian only)
+   * Create a medical pet profile (veterinarian only).
+   * Generates a claiming code valid for 30 days and sets up GSI attributes
+   * for species/breed search (GSI2), claiming code lookup (GSI4), and clinic lookup (GSI6).
+   *
+   * @param input - Medical profile data including name, species, breed, age, clinicId, and verifyingVetId
+   * @returns The created medical profile response with claiming code and expiry
    */
   async createMedicalProfile(input: CreateMedicalProfileInput): Promise<MedicalProfileResponse> {
     const petId = uuidv4()
@@ -116,7 +121,11 @@ export class PetRepository {
   }
 
   /**
-   * Find a pet by claiming code using GSI4
+   * Find a pet by claiming code using GSI4.
+   * Returns null if the code is invalid or expired.
+   *
+   * @param claimingCode - The claiming code to look up (e.g., "CLAIM-ABC123")
+   * @returns The pet record if found and code is not expired, or null
    */
   async findByClaimingCode(claimingCode: string): Promise<Pet | null> {
     const command = new QueryCommand({
@@ -146,7 +155,15 @@ export class PetRepository {
   }
 
   /**
-   * Claim a pet profile (pet owner)
+   * Claim a pet profile (pet owner).
+   * Atomically transitions the profile from 'Pending Claim' to 'Active',
+   * sets owner fields, creates GSI3 owner lookup, and removes claiming code attributes.
+   *
+   * @param petId - The pet to claim
+   * @param input - Owner details (name, email, phone)
+   * @param ownerId - The authenticated owner's user ID
+   * @returns The claim response with new profile status
+   * @throws ConditionalCheckFailedException if pet is not in 'Pending Claim' status
    */
   async claimProfile(petId: string, input: ClaimProfileInput, ownerId: string): Promise<ClaimProfileResponse> {
     const now = new Date().toISOString()
@@ -196,7 +213,15 @@ export class PetRepository {
   }
 
   /**
-   * Enrich a claimed pet profile (pet owner only)
+   * Enrich a claimed pet profile (pet owner only).
+   * Dynamically builds an update expression for the provided fields.
+   * Condition: pet must be owned by ownerId and in 'Active' status.
+   *
+   * @param petId - The pet to enrich
+   * @param ownerId - The authenticated owner's user ID (used in condition check)
+   * @param input - Optional enrichment fields (address, phone, custom fields, etc.)
+   * @returns The updated pet record
+   * @throws ConditionalCheckFailedException if ownership or status check fails
    */
   async enrichProfile(petId: string, ownerId: string, input: EnrichProfileInput): Promise<Pet> {
     const now = new Date().toISOString()
@@ -266,7 +291,10 @@ export class PetRepository {
   }
 
   /**
-   * Find pending claims for a clinic
+   * Find pending claims for a clinic using GSI6 with filter on profileStatus.
+   *
+   * @param clinicId - The clinic to query
+   * @returns Array of pets with 'Pending Claim' status belonging to the clinic
    */
   async findPendingClaims(clinicId: string): Promise<Pet[]> {
     const command = new QueryCommand({
@@ -285,7 +313,10 @@ export class PetRepository {
   }
 
   /**
-   * Find a pet by ID
+   * Find a pet by ID using DynamoDB GetItem on the main table.
+   *
+   * @param petId - The pet's unique identifier
+   * @returns The pet record or null if not found
    */
   async findById(petId: string): Promise<Pet | null> {
     const command = new GetCommand({
@@ -301,7 +332,12 @@ export class PetRepository {
   }
 
   /**
-   * Update a pet record
+   * Update a pet record with dynamic field updates.
+   * Handles reserved keyword escaping (e.g., "name") and GSI2SK updates when age changes.
+   *
+   * @param petId - The pet to update
+   * @param updates - Partial fields to update
+   * @returns The fully updated pet record (ReturnValues: ALL_NEW)
    */
   async update(petId: string, updates: UpdatePetInput): Promise<Pet> {
     const now = new Date().toISOString()
@@ -390,7 +426,9 @@ export class PetRepository {
   }
 
   /**
-   * Delete a pet record
+   * Delete a pet record and all associated records (vaccines, surgeries, images).
+   *
+   * @param petId - The pet to delete
    */
   async delete(petId: string): Promise<void> {
     // First, delete all associated records (vaccines, surgeries, images)
@@ -409,7 +447,11 @@ export class PetRepository {
   }
 
   /**
-   * Find pets by clinic with pagination
+   * Find pets by clinic with pagination using GSI6.
+   *
+   * @param clinicId - The clinic to query
+   * @param pagination - Page number, limit, and optional last evaluated key for cursor-based pagination
+   * @returns Paginated list of pets with hasNext indicator
    */
   async findByClinic(clinicId: string, pagination: PaginationParams): Promise<PaginatedResponse<Pet>> {
     const command = new QueryCommand({
@@ -437,7 +479,12 @@ export class PetRepository {
   }
 
   /**
-   * Search pets using GSI2 for species/breed queries
+   * Search pets using GSI2 for species/breed queries.
+   * Falls back to a full table scan when no species is specified.
+   * Applies in-memory filters for breed, ageMin, and ageMax.
+   *
+   * @param criteria - Search filters (species, breed, ageMin, ageMax, tags)
+   * @returns Array of matching pet records
    */
   async search(criteria: SearchCriteria): Promise<Pet[]> {
     if (criteria.species) {
@@ -499,7 +546,11 @@ export class PetRepository {
   }
 
   /**
-   * Add a vaccine record to a pet
+   * Add a vaccine record to a pet. Stores as a separate item with SK "VACCINE#{vaccineId}".
+   *
+   * @param petId - The pet to add the vaccine to
+   * @param vaccine - Vaccine details (name, dates, vet name)
+   * @returns The created vaccine record with generated vaccineId
    */
   async addVaccine(petId: string, vaccine: CreateVaccineInput): Promise<VaccineRecord> {
     const vaccineId = uuidv4()
@@ -526,7 +577,11 @@ export class PetRepository {
   }
 
   /**
-   * Add a surgery record to a pet
+   * Add a surgery record to a pet. Stores as a separate item with SK "SURGERY#{surgeryId}".
+   *
+   * @param petId - The pet to add the surgery to
+   * @param surgery - Surgery details (type, date, notes, recovery info, vet name)
+   * @returns The created surgery record with generated surgeryId
    */
   async addSurgery(petId: string, surgery: CreateSurgeryInput): Promise<SurgeryRecord> {
     const surgeryId = uuidv4()
@@ -554,7 +609,10 @@ export class PetRepository {
   }
 
   /**
-   * Get all vaccines for a pet
+   * Get all vaccines for a pet using Query with SK begins_with "VACCINE#".
+   *
+   * @param petId - The pet to query vaccines for
+   * @returns Array of vaccine records
    */
   async getVaccines(petId: string): Promise<VaccineRecord[]> {
     const command = new QueryCommand({
@@ -571,7 +629,10 @@ export class PetRepository {
   }
 
   /**
-   * Get all surgeries for a pet
+   * Get all surgeries for a pet using Query with SK begins_with "SURGERY#".
+   *
+   * @param petId - The pet to query surgeries for
+   * @returns Array of surgery records
    */
   async getSurgeries(petId: string): Promise<SurgeryRecord[]> {
     const command = new QueryCommand({
@@ -588,7 +649,10 @@ export class PetRepository {
   }
 
   /**
-   * Get pets by owner using GSI3 (only claimed pets)
+   * Get pets by owner using GSI3 (only active/claimed pets).
+   *
+   * @param ownerId - The owner's user ID
+   * @returns Array of active pets owned by this user
    */
   async findByOwner(ownerId: string): Promise<Pet[]> {
     const command = new QueryCommand({
@@ -607,7 +671,12 @@ export class PetRepository {
   }
 
   /**
-   * Update the claiming code and expiry for a pending profile
+   * Update the claiming code and expiry for a pending profile.
+   * Also updates the GSI4 key attributes to reflect the new code.
+   *
+   * @param petId - The pet to update
+   * @param claimingCode - New claiming code
+   * @param expiryDate - New expiry date (ISO string)
    */
   async updateClaimingCode(petId: string, claimingCode: string, expiryDate: string): Promise<void> {
     const now = new Date().toISOString()
@@ -627,7 +696,11 @@ export class PetRepository {
   }
 
   /**
-   * Set the isMissing flag on a pet
+   * Set the isMissing flag on a pet.
+   *
+   * @param petId - The pet to update
+   * @param isMissing - Whether the pet is currently missing
+   * @returns The updated pet record
    */
   async setMissingStatus(petId: string, isMissing: boolean): Promise<Pet> {
     const now = new Date().toISOString()

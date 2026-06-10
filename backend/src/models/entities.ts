@@ -206,12 +206,19 @@ export interface CareSnapshot extends DynamoDBEntity {
  * Input type for creating a medical pet profile (veterinarian)
  */
 export interface CreateMedicalProfileInput {
+  /** Pet's display name */
   name: string
+  /** Species (e.g., "Dog", "Cat", "Bird") */
   species: string
+  /** Breed within the species (e.g., "Golden Retriever") */
   breed: string
+  /** Age in years. Must be >= 0 */
   age: number
+  /** The clinic creating this profile */
   clinicId: string
+  /** The veterinarian verifying the medical data */
   verifyingVetId: string
+  /** Clinic-specific custom data fields */
   customFields?: Record<string, any>
 }
 
@@ -235,23 +242,33 @@ export interface CreatePetInput {
  * Input type for claiming a pet profile (pet owner)
  */
 export interface ClaimProfileInput {
+  /** The claiming code provided by the veterinary clinic (e.g., "CLAIM-ABC123") */
   claimingCode: string
+  /** Owner's full name */
   ownerName: string
+  /** Owner's email address (used for notifications) */
   ownerEmail: string
+  /** Owner's phone number */
   ownerPhone: string
 }
 
 /**
- * Input type for enriching a claimed pet profile (pet owner)
+ * Input type for enriching a claimed pet profile (pet owner).
+ * All fields are optional — only provided fields are updated.
  */
 export interface EnrichProfileInput {
   ownerName?: string
   ownerEmail?: string
   ownerPhone?: string
+  /** Street name portion of owner's address */
   ownerStreet?: string
+  /** House/building number */
   ownerHouseNumber?: string
+  /** German postal code (PLZ, 5 digits) */
   ownerZipCode?: string
+  /** City name */
   ownerCity?: string
+  /** Clinic-specific custom data fields */
   customFields?: Record<string, any>
 }
 
@@ -259,10 +276,15 @@ export interface EnrichProfileInput {
  * Input type for creating a care snapshot
  */
 export interface CreateCareSnapshotInput {
+  /** The pet to create the snapshot for */
   petId: string
+  /** Free-form care instructions for the caregiver */
   careInstructions: string
+  /** Feeding schedule details (times, amounts, dietary restrictions) */
   feedingSchedule: string
+  /** List of medications the pet is currently taking */
   medications: string[]
+  /** Number of hours until the snapshot access code expires. Must be > 0 */
   expiryHours: number
 }
 
@@ -286,9 +308,13 @@ export interface UpdatePetInput {
  * Input type for creating a vaccine record
  */
 export interface CreateVaccineInput {
+  /** Name of the vaccine administered */
   vaccineName: string
+  /** Date the vaccine was given (ISO 8601 date string, YYYY-MM-DD) */
   administeredDate: string
+  /** Date the next dose is due (ISO 8601 date string, YYYY-MM-DD) */
   nextDueDate: string
+  /** Name of the veterinarian who administered the vaccine */
   veterinarianName: string
 }
 
@@ -296,10 +322,15 @@ export interface CreateVaccineInput {
  * Input type for creating a surgery record
  */
 export interface CreateSurgeryInput {
+  /** Type of surgery performed (e.g., "Spay", "Dental Cleaning") */
   surgeryType: string
+  /** Date the surgery was performed (ISO 8601 date string, YYYY-MM-DD) */
   surgeryDate: string
+  /** Veterinarian notes about the procedure */
   notes: string
+  /** Post-surgery recovery instructions */
   recoveryInfo: string
+  /** Name of the veterinarian who performed the surgery */
   veterinarianName: string
 }
 
@@ -307,16 +338,27 @@ export interface CreateSurgeryInput {
  * Input type for creating a clinic
  */
 export interface CreateClinicInput {
+  /** Clinic display name */
   name: string
+  /** Street address */
   address: string
+  /** City */
   city: string
+  /** State/region (e.g., "Bayern", "Berlin") */
   state: string
+  /** German postal code (PLZ, 5 digits) */
   zipCode: string
+  /** Clinic phone number */
   phone: string
+  /** Clinic email address */
   email: string
+  /** Unique veterinary license number (used for GSI1 lookup) */
   licenseNumber: string
+  /** GPS latitude for location-based searches */
   latitude: number
+  /** GPS longitude for location-based searches */
   longitude: number
+  /** Clinic-defined custom data field definitions */
   customFields?: CustomFieldDefinition[]
 }
 
@@ -340,9 +382,13 @@ export interface UpdateClinicInput {
  * Input type for uploading a pet image
  */
 export interface UploadImageInput {
+  /** The pet this image belongs to */
   petId: string
+  /** Raw image binary data */
   imageBuffer: Buffer
+  /** MIME type (must be "image/jpeg" or "image/png") */
   mimeType: string
+  /** Distinctive feature tags (e.g., ["brown", "white-paws", "scar-left-ear"]) */
   tags: string[]
 }
 
@@ -359,14 +405,21 @@ export interface ImageMetadata {
  * Search criteria for finding lost pets
  */
 export interface SearchCriteria {
+  /** Filter by species (e.g., "Dog", "Cat"). Case-sensitive, title-case expected */
   species?: string
+  /** Filter by breed. Case-insensitive partial match */
   breed?: string
+  /** Minimum age (inclusive). Must be >= 0 */
   ageMin?: number
+  /** Maximum age (inclusive). Must be >= ageMin */
   ageMax?: number
+  /** Filter by distinctive feature tags (e.g., ["brown", "white-paws"]) */
   tags?: string[]
+  /** Geographic search center and radius */
   location?: {
     latitude: number
     longitude: number
+    /** Search radius in kilometers. Must be > 0 */
     radiusKm: number
   }
 }
@@ -375,8 +428,11 @@ export interface SearchCriteria {
  * Pagination parameters for list queries
  */
 export interface PaginationParams {
+  /** Current page number (1-based) */
   page: number
+  /** Maximum items per page */
   limit: number
+  /** DynamoDB ExclusiveStartKey for cursor-based pagination (opaque to client) */
   lastEvaluatedKey?: Record<string, any>
 }
 

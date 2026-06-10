@@ -47,7 +47,11 @@ const CORS_HEADERS = {
 }
 
 /**
- * Main Lambda handler for emergency tools endpoints
+ * Main Lambda handler for emergency tools endpoints.
+ *
+ * @param event - API Gateway proxy event with path, method, auth headers, and body
+ * @returns API Gateway proxy result with CORS headers and JSON response body
+ * @throws Errors are caught and converted via ErrorHandler.toResponse()
  */
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Emergency Tools Handler - Event:', JSON.stringify(event, null, 2))

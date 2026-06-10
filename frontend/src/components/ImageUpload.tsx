@@ -12,9 +12,15 @@ import { useState, useRef, useCallback } from 'react'
 import { Camera, Upload, AlertTriangle } from 'lucide-react'
 import { api, ApiException } from '../api/client'
 
+/**
+ * Props for the ImageUpload component
+ */
 interface ImageUploadProps {
+  /** ID of the pet to upload images for */
   petId: string
+  /** Callback invoked after a successful upload */
   onUploadComplete: () => void
+  /** Whether to show photography guidance tips above the upload area. Defaults to true */
   showGuidance?: boolean
 }
 
@@ -309,8 +315,13 @@ export function ImageUpload({ petId, onUploadComplete, showGuidance = true }: Im
 
 // ── Image Gallery Component ──────────────────────────────────────────────────
 
+/**
+ * ImageGallery - Displays a grid of uploaded pet images with tags and upload dates.
+ */
 interface ImageGalleryProps {
+  /** Array of uploaded images to display */
   images: UploadedImage[]
+  /** Message shown when there are no images. Defaults to "No photos uploaded yet." */
   emptyMessage?: string
 }
 

@@ -31,7 +31,11 @@ export class ClinicService {
   }
 
   /**
-   * Create a new clinic with validation and license number uniqueness check
+   * Create a new clinic with validation and license number uniqueness check.
+   *
+   * @param input - Clinic details (name, address, phone, license, coordinates)
+   * @returns The created clinic record
+   * @throws ValidationException if input is invalid or license number already exists
    */
   async create(input: CreateClinicInput): Promise<Clinic> {
     // Validate input data
@@ -51,21 +55,32 @@ export class ClinicService {
   }
 
   /**
-   * Find a clinic by ID
+   * Find a clinic by ID.
+   *
+   * @param clinicId - The clinic's unique identifier
+   * @returns The clinic record or null if not found
    */
   async findById(clinicId: string): Promise<Clinic | null> {
     return await this.clinicRepo.findById(clinicId)
   }
 
   /**
-   * Find a clinic by license number
+   * Find a clinic by license number.
+   *
+   * @param licenseNumber - The clinic's veterinary license number
+   * @returns The clinic record or null if not found
    */
   async findByLicenseNumber(licenseNumber: string): Promise<Clinic | null> {
     return await this.clinicRepo.findByLicenseNumber(licenseNumber)
   }
 
   /**
-   * Update a clinic with validation
+   * Update a clinic with validation.
+   *
+   * @param clinicId - The clinic to update
+   * @param updates - Partial fields to update
+   * @returns The updated clinic record
+   * @throws ValidationException if input is invalid or clinic not found
    */
   async update(clinicId: string, updates: UpdateClinicInput): Promise<Clinic> {
     // Validate input data
@@ -85,7 +100,10 @@ export class ClinicService {
   }
 
   /**
-   * Delete a clinic
+   * Delete a clinic. Fails if clinic has assigned pets.
+   *
+   * @param clinicId - The clinic to delete
+   * @throws ValidationException if clinic not found or has assigned pets
    */
   async delete(clinicId: string): Promise<void> {
     // Verify clinic exists
@@ -109,7 +127,12 @@ export class ClinicService {
   }
 
   /**
-   * Get all pets assigned to a clinic with pagination
+   * Get all pets assigned to a clinic with pagination.
+   *
+   * @param clinicId - The clinic to query
+   * @param pagination - Page number and limit
+   * @returns Paginated list of pets
+   * @throws ValidationException if clinic not found
    */
   async getPets(clinicId: string, pagination: PaginationParams): Promise<PaginatedResponse<Pet>> {
     // Verify clinic exists
@@ -124,7 +147,11 @@ export class ClinicService {
   }
 
   /**
-   * Get clinic statistics
+   * Get clinic statistics (total pets, species breakdown, recent additions).
+   *
+   * @param clinicId - The clinic to get stats for
+   * @returns Object with totalPets, petsBySpecies map, and recentPets array
+   * @throws ValidationException if clinic not found
    */
   async getStatistics(clinicId: string): Promise<{
     totalPets: number
@@ -170,7 +197,13 @@ export class ClinicService {
   }
 
   /**
-   * Find nearby clinics within a radius
+   * Find nearby clinics within a radius.
+   *
+   * @param latitude - Center point latitude (-90 to 90)
+   * @param longitude - Center point longitude (-180 to 180)
+   * @param radiusKm - Search radius in kilometers (must be > 0)
+   * @returns Array of clinics within the radius
+   * @throws ValidationException if coordinates or radius are invalid
    */
   async findNearby(latitude: number, longitude: number, radiusKm: number): Promise<Clinic[]> {
     // Validate coordinates
@@ -196,7 +229,12 @@ export class ClinicService {
   }
 
   /**
-   * Update clinic custom fields configuration
+   * Update clinic custom fields configuration.
+   *
+   * @param clinicId - The clinic to update
+   * @param customFields - Array of field definitions (fieldName, fieldType, required)
+   * @returns The updated clinic record
+   * @throws ValidationException if clinic not found or fields are invalid
    */
   async updateCustomFields(clinicId: string, customFields: any[]): Promise<Clinic> {
     // Verify clinic exists
@@ -263,7 +301,12 @@ export class ClinicService {
   }
 
   /**
-   * Get all pending (unclaimed) pet profiles for a clinic dashboard
+   * Get all pending (unclaimed) pet profiles for a clinic dashboard.
+   *
+   * @param clinicId - The clinic to query
+   * @returns Array of pets with 'Pending Claim' status
+   * @throws ValidationException if clinic not found
+   *
    * Requirements: [FR-01], [FR-02]
    */
   async getPendingClaims(clinicId: string): Promise<Pet[]> {
@@ -275,7 +318,9 @@ export class ClinicService {
   }
 
   /**
-   * Get all clinics (for admin purposes)
+   * Get all clinics (for admin purposes).
+   *
+   * @returns Array of all clinic records
    */
   async getAll(): Promise<Clinic[]> {
     // This is a simplified implementation - in production you'd want pagination

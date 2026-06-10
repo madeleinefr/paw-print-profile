@@ -58,6 +58,8 @@ export class PhotoGuidanceService {
    * Include tips for lighting, focus, multiple angles
    * Specify recommended image formats and size limits
    * Recommend close-up face shots and full body images
+   *
+   * @returns Complete photo guidelines with tips and format requirements
    */
   getPhotoGuidelines(): PhotoGuidelines {
     return {
@@ -105,6 +107,12 @@ export class PhotoGuidanceService {
    * [FR-16] Display a visual preview alongside guidelines so the user
    * can self-evaluate quality (backend provides the feedback data; frontend
    * renders the preview).
+   *
+   * @param mimeType - The image MIME type (e.g., "image/jpeg")
+   * @param fileSize - File size in bytes
+   * @param width - Optional image width in pixels (for resolution check)
+   * @param height - Optional image height in pixels (for resolution check)
+   * @returns Feedback with passed flag, issues array, and suggestions array
    */
   getImageQualityFeedback(
     mimeType: string,
