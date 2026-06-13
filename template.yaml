@@ -610,6 +610,14 @@ Resources:
             Method: POST
             Auth:
               Authorizer: NONE
+        ContactUploadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/contact/upload-url
+            Method: POST
+            Auth:
+              Authorizer: NONE
         GetPhotoGuidance:
           Type: Api
           Properties:

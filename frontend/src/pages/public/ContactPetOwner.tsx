@@ -4,7 +4,8 @@
  * No authentication required. Allows public users to send a message
  * to a pet owner without seeing their contact information.
  * Messages are sent through the platform to protect owner privacy.
- * Optionally supports attaching a photo (e.g., of a found pet) as base64.
+ * Optionally supports attaching a photo via direct S3 upload (pre-signed URL).
+ * This bypasses the API Gateway payload limit by uploading directly to S3.
  *
  * Validates: [FR-11], [FR-12], [FR-15]
  */
@@ -103,20 +104,23 @@ export function ContactPetOwner() {
     if (file) processFile(file)
   }, [])
 
-  // ── Convert File to Base64 ───────────────────────────────────────────────
+  // ── Upload to S3 via pre-signed URL ───────────────────────────────────────
 
-  function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        // Strip the data URL prefix to get raw base64
-        const base64 = result.split(',')[1]
-        resolve(base64)
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+  async function uploadToS3(file: File): Promise<string> {
+    // 1. Get pre-signed PUT URL from backend
+    const { uploadUrl, imageKey } = await api.post<{ uploadUrl: string; imageKey: string }>(
+      `/pets/${petId}/contact/upload-url`,
+      { mimeType: file.type }
+    )
+
+    // 2. Upload file directly to S3
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
     })
+
+    return imageKey
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────
@@ -133,13 +137,9 @@ export function ContactPetOwner() {
         message: form.message,
       }
 
-      // Attach image as base64 if selected
-      if (selectedFile && imagePreview) {
-        payload.image = {
-          data: await fileToBase64(selectedFile),
-          mimeType: selectedFile.type,
-          fileName: selectedFile.name,
-        }
+      // Upload image directly to S3 if selected, then pass the key
+      if (selectedFile) {
+        payload.imageKey = await uploadToS3(selectedFile)
       }
 
       await api.post(`/pets/${petId}/contact`, payload)

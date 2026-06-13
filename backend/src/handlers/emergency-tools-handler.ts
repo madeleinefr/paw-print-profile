@@ -76,6 +76,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           return await handleReportMissing(event, user)
         } else if (path.includes('/care-snapshot')) {
           return await handleCreateCareSnapshot(event, user)
+        } else if (path.includes('/contact/upload-url')) {
+          return await handleContactUploadUrl(event) // Public — no auth required
         } else if (path.includes('/contact')) {
           return await handleContactOwner(event) // Public — no auth required
         }
@@ -332,10 +334,51 @@ async function handlePhotoGuidance(
 // Centralized via ErrorHandler.toResponse() in the catch block above.
 
 /**
+ * POST /pets/{petId}/contact/upload-url — Get pre-signed S3 PUT URL for contact image
+ * Public endpoint (no auth). Returns a pre-signed URL for the client to upload directly to S3.
+ * This bypasses the API Gateway 10MB payload limit.
+ * Requirements: [FR-12], [FR-15]
+ */
+async function handleContactUploadUrl(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const petId = event.pathParameters?.petId
+  if (!petId) return badRequest('INVALID_INPUT', 'petId is required')
+
+  const body = event.body ? JSON.parse(event.body) : {}
+  const { mimeType } = body
+
+  if (!mimeType) {
+    return badRequest('INVALID_INPUT', 'mimeType is required')
+  }
+
+  const allowedMimeTypes = ['image/jpeg', 'image/png']
+  if (!allowedMimeTypes.includes(mimeType)) {
+    return badRequest('INVALID_INPUT', 'Image must be JPEG or PNG format')
+  }
+
+  const ext = mimeType === 'image/png' ? 'png' : 'jpg'
+  const timestamp = Date.now()
+  const s3Key = `contact-images/${petId}/${timestamp}.${ext}`
+  const bucketName = process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+
+  const factory = new AWSClientFactory()
+  const s3Client = factory.createS3Client()
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: s3Key,
+    ContentType: mimeType,
+  })
+
+  // Pre-signed PUT URL valid for 15 minutes
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 })
+
+  return respond(200, { uploadUrl, imageKey: s3Key })
+}
+
+/**
  * POST /pets/{petId}/contact — Send anonymous message to pet owner (Public)
- * Accepts senderName, senderEmail, message, and optional imageBase64/mimeType.
- * If an image is provided, uploads to S3 under contact-images/{petId}/{timestamp}.{ext},
- * generates a 7-day pre-signed URL, and includes it in the notification.
+ * Accepts senderName, senderEmail, message, and optional imageKey (S3 key from pre-signed upload).
+ * If imageKey is provided, generates a 7-day pre-signed GET URL and includes it in the notification.
  * Requirements: [FR-12], [FR-15]
  */
 async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
@@ -343,7 +386,7 @@ async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatew
   if (!petId) return badRequest('INVALID_INPUT', 'petId is required')
 
   const body = event.body ? JSON.parse(event.body) : {}
-  const { senderName, senderEmail, message, imageBase64, mimeType } = body
+  const { senderName, senderEmail, message, imageKey } = body
 
   if (!senderName || !senderEmail || !message) {
     return badRequest('INVALID_INPUT', 'senderName, senderEmail, and message are required')
@@ -358,51 +401,21 @@ async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatew
     return badRequest('INVALID_INPUT', 'Message must be 1000 characters or less')
   }
 
-  // Validate image attachment if provided
+  // Generate a pre-signed GET URL if an image was uploaded via pre-signed PUT
   let imageUrl: string | undefined
-  if (imageBase64) {
-    if (!mimeType) {
-      return badRequest('INVALID_INPUT', 'mimeType is required when imageBase64 is provided')
+  if (imageKey) {
+    // Validate that the key is under the expected prefix for this pet
+    if (!imageKey.startsWith(`contact-images/${petId}/`)) {
+      return badRequest('INVALID_INPUT', 'Invalid imageKey — must belong to this pet')
     }
 
-    const allowedMimeTypes = ['image/jpeg', 'image/png']
-    if (!allowedMimeTypes.includes(mimeType)) {
-      return badRequest('INVALID_INPUT', 'Image must be JPEG or PNG format')
-    }
-
-    const imageBuffer = Buffer.from(imageBase64, 'base64')
-    const maxSize = 10 * 1024 * 1024 // 10MB
-    if (imageBuffer.length > maxSize) {
-      return badRequest('INVALID_INPUT', 'Image must be 10MB or less')
-    }
-
-    // Upload image to S3 under contact-images/{petId}/{timestamp}.{ext}
-    const ext = mimeType === 'image/png' ? 'png' : 'jpg'
-    const timestamp = Date.now()
-    const s3Key = `contact-images/${petId}/${timestamp}.${ext}`
     const bucketName = process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
-
     const factory = new AWSClientFactory()
     const s3Client = factory.createS3Client()
 
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: bucketName,
-        Key: s3Key,
-        Body: imageBuffer,
-        ContentType: mimeType,
-        Metadata: {
-          petId,
-          senderEmail,
-          purpose: 'contact-attachment',
-        },
-      })
-    )
-
-    // Generate pre-signed GET URL valid for 7 days
     const getCommand = new GetObjectCommand({
       Bucket: bucketName,
-      Key: s3Key,
+      Key: imageKey,
     })
     const sevenDaysInSeconds = 7 * 24 * 60 * 60
     imageUrl = await getSignedUrl(s3Client, getCommand, { expiresIn: sevenDaysInSeconds })

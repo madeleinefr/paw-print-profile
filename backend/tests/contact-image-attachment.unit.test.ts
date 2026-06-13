@@ -1,11 +1,11 @@
 /**
- * Unit tests for POST /pets/{petId}/contact image attachment support
+ * Unit tests for contact image attachment via pre-signed S3 upload pattern
  *
  * Tests verify:
+ * - POST /pets/{petId}/contact/upload-url generates a pre-signed PUT URL
+ * - POST /pets/{petId}/contact accepts imageKey and generates GET pre-signed URL
  * - Text-only messages still work (backward compatibility)
- * - Image attachment is uploaded to S3 under contact-images/{petId}/{timestamp}.{ext}
- * - Pre-signed URL (7 days) is generated and included in notification
- * - Validation rejects invalid mime types, oversized images, missing mimeType
+ * - Validation rejects invalid mime types, invalid imageKey prefixes
  * - Image is NOT added to pet profile (temporary attachment only)
  *
  * Validates: [FR-12], [FR-15]
@@ -135,30 +135,95 @@ const claimedPet = {
   GSI2SK: 'BREED#Labrador#AGE#4',
 }
 
-// Small valid JPEG (1x1 pixel) as base64
-const TINY_JPEG_BASE64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYI4Q/SFhSRyQ4VypTJDdEkoJWRVJFRmfH/9oADAMBAAIRAxEAPwC/RRRQAf/Z'
-
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-describe('POST /pets/{petId}/contact — Image Attachment [FR-12][FR-15]', () => {
+describe('POST /pets/{petId}/contact/upload-url — Pre-signed Upload URL [FR-12][FR-15]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.IS_LOCAL = 'true'
+    mockGetSignedUrl.mockResolvedValue('http://localhost:4566/paw-print-profile-images/contact-images/pet-123/123456.jpg?X-Amz-Signature=abc')
+  })
 
-    // DynamoDB: return claimed pet
+  it('returns a pre-signed PUT URL and imageKey for JPEG', async () => {
+    const event = makeEvent({
+      path: '/pets/pet-123/contact/upload-url',
+      resource: '/pets/{petId}/contact/upload-url',
+      body: JSON.stringify({ mimeType: 'image/jpeg' }),
+    })
+
+    const result = await handler(event)
+    const body = JSON.parse(result.body)
+
+    expect(result.statusCode).toBe(200)
+    expect(body.uploadUrl).toContain('localhost')
+    expect(body.imageKey).toMatch(/^contact-images\/pet-123\/\d+\.jpg$/)
+  })
+
+  it('returns .png extension for PNG images', async () => {
+    const event = makeEvent({
+      path: '/pets/pet-123/contact/upload-url',
+      resource: '/pets/{petId}/contact/upload-url',
+      body: JSON.stringify({ mimeType: 'image/png' }),
+    })
+
+    const result = await handler(event)
+    const body = JSON.parse(result.body)
+
+    expect(result.statusCode).toBe(200)
+    expect(body.imageKey).toMatch(/^contact-images\/pet-123\/\d+\.png$/)
+  })
+
+  it('rejects missing mimeType', async () => {
+    const event = makeEvent({
+      path: '/pets/pet-123/contact/upload-url',
+      resource: '/pets/{petId}/contact/upload-url',
+      body: JSON.stringify({}),
+    })
+
+    const result = await handler(event)
+    expect(result.statusCode).toBe(400)
+    expect(JSON.parse(result.body).error.message).toContain('mimeType is required')
+  })
+
+  it('rejects unsupported mime types (e.g., image/gif)', async () => {
+    const event = makeEvent({
+      path: '/pets/pet-123/contact/upload-url',
+      resource: '/pets/{petId}/contact/upload-url',
+      body: JSON.stringify({ mimeType: 'image/gif' }),
+    })
+
+    const result = await handler(event)
+    expect(result.statusCode).toBe(400)
+    expect(JSON.parse(result.body).error.message).toContain('JPEG or PNG')
+  })
+
+  it('generates pre-signed URL with 15 minute expiry', async () => {
+    const event = makeEvent({
+      path: '/pets/pet-123/contact/upload-url',
+      resource: '/pets/{petId}/contact/upload-url',
+      body: JSON.stringify({ mimeType: 'image/jpeg' }),
+    })
+
+    await handler(event)
+
+    expect(mockGetSignedUrl).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ _type: 'PutObject' }),
+      { expiresIn: 900 }
+    )
+  })
+})
+
+describe('POST /pets/{petId}/contact — Contact with imageKey [FR-12][FR-15]', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.IS_LOCAL = 'true'
     mockDocSend.mockResolvedValue({ Item: claimedPet })
-
-    // SNS: succeed
     mockSnsSend.mockResolvedValue({
       TopicArn: 'arn:aws:sns:us-east-1:000000000000:paw-print-email-notifications',
       MessageId: 'msg-001',
     })
-
-    // S3 upload: succeed
-    mockS3Send.mockResolvedValue({})
-
-    // Pre-signed URL
-    mockGetSignedUrl.mockResolvedValue('http://localhost:4566/paw-print-profile-images/contact-images/pet-123/123456.jpg?X-Amz-Signature=abc')
+    mockGetSignedUrl.mockResolvedValue('http://localhost:4566/paw-print-profile-images/contact-images/pet-123/123456.jpg?X-Amz-Signature=xyz')
   })
 
   describe('Backward compatibility — text-only messages', () => {
@@ -176,21 +241,19 @@ describe('POST /pets/{petId}/contact — Image Attachment [FR-12][FR-15]', () =>
 
       expect(result.statusCode).toBe(200)
       expect(body.success).toBe(true)
-      // S3 should NOT be called for text-only messages
-      expect(mockS3Send).not.toHaveBeenCalled()
+      // getSignedUrl should NOT be called for text-only messages
       expect(mockGetSignedUrl).not.toHaveBeenCalled()
     })
   })
 
-  describe('Image upload to S3', () => {
-    it('uploads image to contact-images/{petId}/{timestamp}.{ext}', async () => {
+  describe('imageKey-based image reference', () => {
+    it('accepts imageKey and generates a 7-day GET pre-signed URL', async () => {
       const event = makeEvent({
         body: JSON.stringify({
           senderName: 'Bob',
           senderEmail: 'bob@example.com',
           message: 'Found a dog matching your description',
-          imageBase64: TINY_JPEG_BASE64,
-          mimeType: 'image/jpeg',
+          imageKey: 'contact-images/pet-123/1700000000.jpg',
         }),
       })
 
@@ -200,190 +263,42 @@ describe('POST /pets/{petId}/contact — Image Attachment [FR-12][FR-15]', () =>
       expect(result.statusCode).toBe(200)
       expect(body.success).toBe(true)
 
-      // Verify S3 PutObject was called
-      expect(mockS3Send).toHaveBeenCalled()
-      const putCall = mockS3Send.mock.calls[0][0]
-      expect(putCall.Key).toMatch(/^contact-images\/pet-123\/\d+\.jpg$/)
-      expect(putCall.ContentType).toBe('image/jpeg')
-      expect(putCall.Bucket).toBe(process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images')
-    })
-
-    it('uses .png extension for PNG images', async () => {
-      const event = makeEvent({
-        body: JSON.stringify({
-          senderName: 'Carol',
-          senderEmail: 'carol@example.com',
-          message: 'Spotted your cat',
-          imageBase64: TINY_JPEG_BASE64,  // content doesn't matter for mock
-          mimeType: 'image/png',
-        }),
-      })
-
-      await handler(event)
-
-      const putCall = mockS3Send.mock.calls[0][0]
-      expect(putCall.Key).toMatch(/^contact-images\/pet-123\/\d+\.png$/)
-      expect(putCall.ContentType).toBe('image/png')
-    })
-
-    it('generates a pre-signed URL with 7-day expiry', async () => {
-      const event = makeEvent({
-        body: JSON.stringify({
-          senderName: 'Dave',
-          senderEmail: 'dave@example.com',
-          message: 'Here is a photo',
-          imageBase64: TINY_JPEG_BASE64,
-          mimeType: 'image/jpeg',
-        }),
-      })
-
-      await handler(event)
-
-      // getSignedUrl should be called with 7 days in seconds
+      // Should generate a GET pre-signed URL with 7-day expiry
       expect(mockGetSignedUrl).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ _type: 'GetObject' }),
+        expect.objectContaining({ _type: 'GetObject', Key: 'contact-images/pet-123/1700000000.jpg' }),
         { expiresIn: 7 * 24 * 60 * 60 }
       )
     })
-  })
 
-  describe('Validation', () => {
-    it('rejects imageBase64 without mimeType', async () => {
+    it('rejects imageKey that does not match the petId prefix', async () => {
       const event = makeEvent({
         body: JSON.stringify({
           senderName: 'Eve',
           senderEmail: 'eve@example.com',
-          message: 'Here is an image',
-          imageBase64: TINY_JPEG_BASE64,
-          // mimeType missing
+          message: 'Spoofed image key',
+          imageKey: 'contact-images/pet-999/1700000000.jpg',
         }),
       })
 
       const result = await handler(event)
-      const body = JSON.parse(result.body)
-
       expect(result.statusCode).toBe(400)
-      expect(body.error.message).toContain('mimeType is required')
+      expect(JSON.parse(result.body).error.message).toContain('must belong to this pet')
     })
 
-    it('rejects unsupported mime types (e.g., image/gif)', async () => {
+    it('rejects imageKey with path traversal attempt', async () => {
       const event = makeEvent({
         body: JSON.stringify({
-          senderName: 'Frank',
-          senderEmail: 'frank@example.com',
-          message: 'GIF attachment',
-          imageBase64: TINY_JPEG_BASE64,
-          mimeType: 'image/gif',
+          senderName: 'Mallory',
+          senderEmail: 'mallory@example.com',
+          message: 'Path traversal',
+          imageKey: 'pets/pet-123/private-image.jpg',
         }),
       })
 
       const result = await handler(event)
-      const body = JSON.parse(result.body)
-
       expect(result.statusCode).toBe(400)
-      expect(body.error.message).toContain('JPEG or PNG')
-    })
-
-    it('rejects images larger than 10MB', async () => {
-      // Create a base64 string that decodes to > 10MB
-      // Base64 encoding ratio: 4 characters represent 3 bytes
-      // Need > 10MB = 10485760 bytes → need at least 13981014 base64 chars
-      const largeBase64 = 'A'.repeat(14_000_000)
-
-      const event = makeEvent({
-        body: JSON.stringify({
-          senderName: 'Grace',
-          senderEmail: 'grace@example.com',
-          message: 'Huge image',
-          imageBase64: largeBase64,
-          mimeType: 'image/jpeg',
-        }),
-      })
-
-      const result = await handler(event)
-      const body = JSON.parse(result.body)
-
-      expect(result.statusCode).toBe(400)
-      expect(body.error.message).toContain('10MB or less')
-    })
-
-    it('still validates required text fields with image present', async () => {
-      const event = makeEvent({
-        body: JSON.stringify({
-          senderName: '',
-          senderEmail: 'test@test.com',
-          message: 'Hi',
-          imageBase64: TINY_JPEG_BASE64,
-          mimeType: 'image/jpeg',
-        }),
-      })
-
-      const result = await handler(event)
-
-      expect(result.statusCode).toBe(400)
-    })
-  })
-
-  describe('Pre-signed URL in notification', () => {
-    it('includes image URL in the notification when image is provided', async () => {
-      const event = makeEvent({
-        body: JSON.stringify({
-          senderName: 'Helen',
-          senderEmail: 'helen@example.com',
-          message: 'I found this dog near the park',
-          imageBase64: TINY_JPEG_BASE64,
-          mimeType: 'image/jpeg',
-        }),
-      })
-
-      await handler(event)
-
-      // SNS publish should include the image URL in the message body
-      // The message is sent via sendEmail → SNS publish
-      expect(mockSnsSend).toHaveBeenCalled()
-      const snsCall = mockSnsSend.mock.calls.find((call: any) => {
-        const msg = call[0]?.Message
-        if (msg) {
-          try {
-            const parsed = JSON.parse(msg)
-            return parsed.body?.includes('Attached Image')
-          } catch {
-            return false
-          }
-        }
-        return false
-      })
-      // The notification was sent (we already verified 200 success)
-      // The image URL is included in the message to the owner
-      expect(mockSnsSend).toHaveBeenCalled()
-    })
-
-    it('does NOT include image section in notification when no image provided', async () => {
-      const event = makeEvent({
-        body: JSON.stringify({
-          senderName: 'Ivan',
-          senderEmail: 'ivan@example.com',
-          message: 'No image here',
-        }),
-      })
-
-      await handler(event)
-
-      // All SNS calls should NOT contain "Attached Image" in message body
-      for (const call of mockSnsSend.mock.calls) {
-        const msg = call[0]?.Message
-        if (msg) {
-          try {
-            const parsed = JSON.parse(msg)
-            if (parsed.body) {
-              expect(parsed.body).not.toContain('Attached Image')
-            }
-          } catch {
-            // non-JSON message (e.g. CreateTopic), skip
-          }
-        }
-      }
+      expect(JSON.parse(result.body).error.message).toContain('must belong to this pet')
     })
   })
 
@@ -394,20 +309,34 @@ describe('POST /pets/{petId}/contact — Image Attachment [FR-12][FR-15]', () =>
           senderName: 'Jake',
           senderEmail: 'jake@example.com',
           message: 'Photo attached',
-          imageBase64: TINY_JPEG_BASE64,
-          mimeType: 'image/jpeg',
+          imageKey: 'contact-images/pet-123/1700000000.jpg',
         }),
       })
 
       await handler(event)
 
-      // DynamoDB should only be called for pet lookup (GetCommand), not PutCommand for IMAGE#
       for (const call of mockDocSend.mock.calls) {
         const item = call[0]?.Item
         if (item && item.SK) {
           expect(item.SK).not.toMatch(/^IMAGE#/)
         }
       }
+    })
+  })
+
+  describe('Required field validation', () => {
+    it('still validates required text fields', async () => {
+      const event = makeEvent({
+        body: JSON.stringify({
+          senderName: '',
+          senderEmail: 'test@test.com',
+          message: 'Hi',
+          imageKey: 'contact-images/pet-123/1700000000.jpg',
+        }),
+      })
+
+      const result = await handler(event)
+      expect(result.statusCode).toBe(400)
     })
   })
 })
