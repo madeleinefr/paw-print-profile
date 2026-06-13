@@ -83,6 +83,8 @@ export interface ContactMessageInput {
   senderName: string
   senderEmail: string
   message: string
+  /** Optional pre-signed URL for an attached image (valid for 7 days) */
+  imageUrl?: string
 }
 
 export class NotificationService {
@@ -413,22 +415,36 @@ export class NotificationService {
   async sendContactMessage(
     input: ContactMessageInput
   ): Promise<NotificationResult> {
-    const { petName, ownerEmail, senderName, senderEmail, message } = input
+    const { petName, ownerEmail, senderName, senderEmail, message, imageUrl } = input
     const timestamp = new Date().toISOString()
 
     const subject = `PawPrint: Someone has a message about ${petName}`
-    const body = [
+    const bodyLines = [
       `You received a message through PawPrint about your pet ${petName}.`,
       '',
       `From: ${senderName} (${senderEmail})`,
       '',
       `Message:`,
       message,
+    ]
+
+    if (imageUrl) {
+      bodyLines.push(
+        '',
+        `📷 Attached Image:`,
+        imageUrl,
+        `(This link is valid for 7 days)`
+      )
+    }
+
+    bodyLines.push(
       '',
       `---`,
       `You can reply directly to ${senderEmail} to respond.`,
-      `This message was sent through the PawPrint platform to protect your privacy.`,
-    ].join('\n')
+      `This message was sent through the PawPrint platform to protect your privacy.`
+    )
+
+    const body = bodyLines.join('\n')
 
     try {
       const result = await this.sendEmail(ownerEmail, subject, body)
