@@ -16,6 +16,8 @@
  */
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { CareSnapshotService } from '../services/care-snapshot-service'
 import { EmergencyToolsService } from '../services/emergency-tools-service'
 import { FlyerGenerationService } from '../services/flyer-generation-service'
@@ -26,6 +28,7 @@ import { extractUserFromIdToken } from '../services/token-utils'
 import { PetRepository } from '../repositories/pet-repository'
 import { ClinicRepository } from '../repositories/clinic-repository'
 import { ImageRepository } from '../repositories/image-repository'
+import { AWSClientFactory } from '../infrastructure/aws-client-factory'
 import { ErrorHandler } from '../errors/index'
 
 import { NotificationService } from '../services/notification-service'
@@ -73,6 +76,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           return await handleReportMissing(event, user)
         } else if (path.includes('/care-snapshot')) {
           return await handleCreateCareSnapshot(event, user)
+        } else if (path.includes('/contact/upload-url')) {
+          return await handleContactUploadUrl(event) // Public — no auth required
         } else if (path.includes('/contact')) {
           return await handleContactOwner(event) // Public — no auth required
         }
@@ -329,17 +334,59 @@ async function handlePhotoGuidance(
 // Centralized via ErrorHandler.toResponse() in the catch block above.
 
 /**
+ * POST /pets/{petId}/contact/upload-url — Get pre-signed S3 PUT URL for contact image
+ * Public endpoint (no auth). Returns a pre-signed URL for the client to upload directly to S3.
+ * This bypasses the API Gateway 10MB payload limit.
+ * Requirements: [FR-12], [FR-15]
+ */
+async function handleContactUploadUrl(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const petId = event.pathParameters?.petId
+  if (!petId) return badRequest('INVALID_INPUT', 'petId is required')
+
+  const body = event.body ? JSON.parse(event.body) : {}
+  const { mimeType } = body
+
+  if (!mimeType) {
+    return badRequest('INVALID_INPUT', 'mimeType is required')
+  }
+
+  const allowedMimeTypes = ['image/jpeg', 'image/png']
+  if (!allowedMimeTypes.includes(mimeType)) {
+    return badRequest('INVALID_INPUT', 'Image must be JPEG or PNG format')
+  }
+
+  const ext = mimeType === 'image/png' ? 'png' : 'jpg'
+  const timestamp = Date.now()
+  const s3Key = `contact-images/${petId}/${timestamp}.${ext}`
+  const bucketName = process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+
+  const factory = new AWSClientFactory()
+  const s3Client = factory.createS3Client()
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: s3Key,
+    ContentType: mimeType,
+  })
+
+  // Pre-signed PUT URL valid for 15 minutes
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 })
+
+  return respond(200, { uploadUrl, imageKey: s3Key })
+}
+
+/**
  * POST /pets/{petId}/contact — Send anonymous message to pet owner (Public)
- * Accepts senderName, senderEmail, message. Looks up owner email from pet record
- * and sends via NotificationService without exposing owner PII to sender.
- * Requirements: [FR-15]
+ * Accepts senderName, senderEmail, message, and optional imageKey (S3 key from pre-signed upload).
+ * If imageKey is provided, generates a 7-day pre-signed GET URL and includes it in the notification.
+ * Requirements: [FR-12], [FR-15]
  */
 async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const petId = event.pathParameters?.petId
   if (!petId) return badRequest('INVALID_INPUT', 'petId is required')
 
   const body = event.body ? JSON.parse(event.body) : {}
-  const { senderName, senderEmail, message } = body
+  const { senderName, senderEmail, message, imageKey } = body
 
   if (!senderName || !senderEmail || !message) {
     return badRequest('INVALID_INPUT', 'senderName, senderEmail, and message are required')
@@ -354,6 +401,32 @@ async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatew
     return badRequest('INVALID_INPUT', 'Message must be 1000 characters or less')
   }
 
+  // Generate a pre-signed GET URL if an image was uploaded via pre-signed PUT
+  let imageUrl: string | undefined
+  if (imageKey) {
+    // Validate that the key is under the expected prefix for this pet
+    if (!imageKey.startsWith(`contact-images/${petId}/`)) {
+      return badRequest('INVALID_INPUT', 'Invalid imageKey — must belong to this pet')
+    }
+
+    const bucketName = process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+    const factory = new AWSClientFactory()
+    const s3Client = factory.createS3Client()
+
+    const getCommand = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: imageKey,
+    })
+    const sevenDaysInSeconds = 7 * 24 * 60 * 60
+    imageUrl = await getSignedUrl(s3Client, getCommand, { expiresIn: sevenDaysInSeconds })
+
+    // Replace Docker-internal hostnames with localhost for local dev
+    const localstackHost = process.env.LOCALSTACK_HOSTNAME
+    if (localstackHost && localstackHost !== 'localhost') {
+      imageUrl = imageUrl.replace(`http://${localstackHost}:`, 'http://localhost:')
+    }
+  }
+
   const pet = await petRepo.findById(petId)
   if (!pet) return respond(404, { error: { code: 'NOT_FOUND', message: 'Pet not found' } })
   if (!pet.ownerEmail) return badRequest('NO_OWNER', 'This pet does not have an owner to contact')
@@ -366,6 +439,9 @@ async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatew
     console.log(`  From: ${senderName} <${senderEmail}>`)
     console.log(`  Pet: ${pet.name}`)
     console.log(`  Message: ${message}`)
+    if (imageUrl) {
+      console.log(`  📷 Image: ${imageUrl}`)
+    }
   }
 
   await notificationService.sendContactMessage({
@@ -374,6 +450,7 @@ async function handleContactOwner(event: APIGatewayProxyEvent): Promise<APIGatew
     senderName,
     senderEmail,
     message,
+    imageUrl,
   })
 
   return respond(200, { success: true, message: 'Message sent to pet owner' })

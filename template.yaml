@@ -212,6 +212,10 @@ Resources:
             Prefix: temp/
             Status: Enabled
             ExpirationInDays: 1
+          - Id: DeleteContactImages
+            Prefix: contact-images/
+            Status: Enabled
+            ExpirationInDays: 30
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Cognito Auto-Confirm Lambda Trigger (must be before UserPool)
@@ -603,6 +607,14 @@ Resources:
           Properties:
             RestApiId: !Ref PawPrintApi
             Path: /pets/{petId}/contact
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        ContactUploadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PawPrintApi
+            Path: /pets/{petId}/contact/upload-url
             Method: POST
             Auth:
               Authorizer: NONE

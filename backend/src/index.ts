@@ -101,6 +101,7 @@ app.put('/pets/:petId/found', wrap(emergencyToolsHandler))
 app.get('/pets/:petId/flyer', wrap(emergencyToolsHandler))
 app.get('/pets/:petId/photo-guidance', wrap(emergencyToolsHandler))
 app.post('/pets/:petId/care-snapshot', wrap(emergencyToolsHandler))
+app.post('/pets/:petId/contact/upload-url', wrap(emergencyToolsHandler))
 app.post('/pets/:petId/contact', wrap(emergencyToolsHandler))
 app.get('/care-snapshots/:accessCode', wrap(emergencyToolsHandler))
 
