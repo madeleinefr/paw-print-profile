@@ -253,29 +253,6 @@ async function seed() {
   })
   console.log(`  ✓ Askari (Australian Shepherd, 2y) — Pending Claim (code: ${rocky.claimingCode})`)
 
-  // Pet 10: Claimed + Active (owned by owner-1) — Dog
-  const lotte = await petRepo.createMedicalProfile({
-    name: 'Lotte',
-    species: 'Dog',
-    breed: 'Dachshund',
-    age: 9,
-    clinicId: clinic.clinicId,
-    verifyingVetId: VET_ID,
-  })
-  await petRepo.claimProfile(lotte.petId, {
-    claimingCode: lotte.claimingCode,
-    ownerName: 'Anna Müller',
-    ownerEmail: 'anna.mueller@beispiel.de',
-    ownerPhone: '+49-176-12345678',
-  }, OWNER_ID)
-  await petRepo.update(lotte.petId, {
-    ownerStreet: 'Leopoldstraße',
-    ownerHouseNumber: '27',
-    ownerZipCode: '80802',
-    ownerCity: 'München',
-  })
-  console.log(`  ✓ Lotte (Dachshund, 9y) — Active, owned by ${OWNER_ID}`)
-
   // ── 2b. Additional owners, clinics, and pets in other cities ─────────────
   console.log('\n🏥 Creating additional clinics in other cities...')
 
@@ -492,96 +469,257 @@ async function seed() {
   // ── 3. Add medical records ───────────────────────────────────────────────
   console.log('\n💉 Adding medical records...')
 
+  // ─ Balu (Golden Retriever, 3y) ─
   await petRepo.addVaccine(buddy.petId, {
-    vaccineName: 'Tollwut',
+    vaccineName: 'Rabies',
     administeredDate: '2024-06-15',
     nextDueDate: '2025-06-15',
     veterinarianName: 'Dr. Sarah Weber',
   })
   await petRepo.addVaccine(buddy.petId, {
-    vaccineName: 'SHPPi (Staupe, Hepatitis, Parvo, Parainfluenza)',
+    vaccineName: 'DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)',
     administeredDate: '2024-06-15',
     nextDueDate: '2025-06-15',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Balu: Tollwut + SHPPi Impfungen')
-
+  await petRepo.addVaccine(buddy.petId, {
+    vaccineName: 'Leptospirosis',
+    administeredDate: '2024-06-15',
+    nextDueDate: '2025-06-15',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
   await petRepo.addSurgery(buddy.petId, {
-    surgeryType: 'Kastration',
+    surgeryType: 'Neutering',
     surgeryDate: '2023-03-10',
-    notes: 'Routineeingriff, keine Komplikationen',
-    recoveryInfo: 'Vollständige Erholung in 10 Tagen, Schonkost für 3 Tage',
+    notes: 'Routine procedure, no complications',
+    recoveryInfo: 'Full recovery in 10 days, bland diet for 3 days',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Balu: Kastration')
+  console.log('  ✓ Balu: Rabies, DHPP, Leptospirosis + Neutering')
 
+  // ─ Luna (Siamese, 2y) ─
   await petRepo.addVaccine(luna.petId, {
-    vaccineName: 'RCP (Katzenschnupfen, Katzenseuche)',
+    vaccineName: 'FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)',
     administeredDate: '2024-08-01',
     nextDueDate: '2025-08-01',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Luna: RCP Impfung')
+  await petRepo.addVaccine(luna.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2024-08-01',
+    nextDueDate: '2027-08-01',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addSurgery(luna.petId, {
+    surgeryType: 'Spay',
+    surgeryDate: '2023-11-20',
+    notes: 'Routine procedure, laparoscopic',
+    recoveryInfo: 'Recovery in 7 days, wear cone collar',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  console.log('  ✓ Luna: FVRCP, Rabies + Spay')
 
-  await petRepo.addVaccine(susiHamburg.petId, {
-    vaccineName: 'Tollwut',
-    administeredDate: '2024-01-20',
-    nextDueDate: '2025-01-20',
+  // ─ Rex (German Shepherd, 5y) ─
+  await petRepo.addVaccine(max.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2024-04-10',
+    nextDueDate: '2027-04-10',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addVaccine(susiHamburg.petId, {
-    vaccineName: 'Leptospirose',
-    administeredDate: '2024-01-20',
-    nextDueDate: '2025-01-20',
+  await petRepo.addVaccine(max.petId, {
+    vaccineName: 'DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)',
+    administeredDate: '2024-04-10',
+    nextDueDate: '2025-04-10',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addSurgery(susiHamburg.petId, {
-    surgeryType: 'Zahnreinigung',
-    surgeryDate: '2024-11-05',
-    notes: 'Jährliche Zahnreinigung, zwei Zähne extrahiert',
-    recoveryInfo: 'Weichfutter für 5 Tage, Antibiotika für 7 Tage',
+  await petRepo.addVaccine(max.petId, {
+    vaccineName: 'Bordetella (Kennel Cough)',
+    administeredDate: '2024-04-10',
+    nextDueDate: '2025-04-10',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Susi: Tollwut + Leptospirose Impfungen, Zahnreinigung')
+  await petRepo.addSurgery(max.petId, {
+    surgeryType: 'Cruciate Ligament Repair (TPLO)',
+    surgeryDate: '2023-09-15',
+    notes: 'Left anterior cruciate ligament tear, TPLO method',
+    recoveryInfo: 'Strict rest 8 weeks, physiotherapy 3x/week, follow-up X-ray after 6 weeks',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  console.log('  ✓ Rex: Rabies, DHPP, Bordetella + Cruciate Ligament Repair')
 
-  await petRepo.addVaccine(timmiKoeln.petId, {
-    vaccineName: 'RCP (Katzenschnupfen, Katzenseuche)',
-    administeredDate: '2024-03-10',
-    nextDueDate: '2025-03-10',
+  // ─ Minka (Domestic Shorthair, 4y) ─
+  await petRepo.addVaccine(whiskers.petId, {
+    vaccineName: 'FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)',
+    administeredDate: '2024-05-20',
+    nextDueDate: '2025-05-20',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  await petRepo.addVaccine(timmiKoeln.petId, {
-    vaccineName: 'FeLV (Katzenleukämie)',
-    administeredDate: '2024-03-10',
-    nextDueDate: '2025-03-10',
+  await petRepo.addVaccine(whiskers.petId, {
+    vaccineName: 'FeLV (Feline Leukemia Virus)',
+    administeredDate: '2024-05-20',
+    nextDueDate: '2025-05-20',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Timmi: RCP + FeLV Impfungen')
+  console.log('  ✓ Minka: FVRCP, FeLV')
 
+  // ─ Olive (Ridgeback, 1y) ─
+  await petRepo.addVaccine(charlie.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2025-02-10',
+    nextDueDate: '2028-02-10',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addVaccine(charlie.petId, {
+    vaccineName: 'DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)',
+    administeredDate: '2025-02-10',
+    nextDueDate: '2026-02-10',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addVaccine(charlie.petId, {
+    vaccineName: 'Leptospirosis',
+    administeredDate: '2025-02-10',
+    nextDueDate: '2026-02-10',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  console.log('  ✓ Olive: Rabies, DHPP, Leptospirosis (Puppy primary vaccination)')
+
+  // ─ Nala (Persian, 3y) ─
+  await petRepo.addVaccine(nala.petId, {
+    vaccineName: 'FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)',
+    administeredDate: '2024-10-01',
+    nextDueDate: '2025-10-01',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addVaccine(nala.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2024-10-01',
+    nextDueDate: '2027-10-01',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addSurgery(nala.petId, {
+    surgeryType: 'Spay',
+    surgeryDate: '2023-06-15',
+    notes: 'Routine procedure, uncomplicated',
+    recoveryInfo: 'Recovery in 10 days, cone collar for 7 days',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  console.log('  ✓ Nala: FVRCP, Rabies + Spay')
+
+  // ─ Askari (Australian Shepherd, 2y) ─
+  await petRepo.addVaccine(rocky.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2025-01-15',
+    nextDueDate: '2028-01-15',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addVaccine(rocky.petId, {
+    vaccineName: 'DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)',
+    administeredDate: '2025-01-15',
+    nextDueDate: '2026-01-15',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addVaccine(rocky.petId, {
+    vaccineName: 'Leptospirosis',
+    administeredDate: '2025-01-15',
+    nextDueDate: '2026-01-15',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  await petRepo.addSurgery(rocky.petId, {
+    surgeryType: 'Neutering',
+    surgeryDate: '2024-08-20',
+    notes: 'Routine neutering, no complications',
+    recoveryInfo: 'Recovery in 10 days, restricted activity',
+    veterinarianName: 'Dr. Sarah Weber',
+  })
+  console.log('  ✓ Askari: Rabies, DHPP, Leptospirosis + Neutering')
+
+  // ─ Lotte Berlin (Dachshund, 9y) ─
   await petRepo.addVaccine(lotteBerlin.petId, {
-    vaccineName: 'Tollwut',
+    vaccineName: 'Rabies',
+    administeredDate: '2024-09-01',
+    nextDueDate: '2027-09-01',
+    veterinarianName: 'Dr. Michael Huber',
+  })
+  await petRepo.addVaccine(lotteBerlin.petId, {
+    vaccineName: 'DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)',
     administeredDate: '2024-09-01',
     nextDueDate: '2025-09-01',
-    veterinarianName: 'Dr. Sarah Weber',
+    veterinarianName: 'Dr. Michael Huber',
   })
   await petRepo.addSurgery(lotteBerlin.petId, {
-    surgeryType: 'Bandscheibenoperation',
+    surgeryType: 'Intervertebral Disc Surgery',
     surgeryDate: '2024-04-20',
-    notes: 'Bandscheibenvorfall L2-L3, minimalinvasiv',
-    recoveryInfo: 'Strikte Ruhe für 6 Wochen, Physiotherapie empfohlen',
-    veterinarianName: 'Dr. Sarah Weber',
+    notes: 'Herniated disc L2-L3, minimally invasive (IVDD)',
+    recoveryInfo: 'Strict rest 6 weeks, physiotherapy recommended, follow-up after 4 weeks',
+    veterinarianName: 'Dr. Michael Huber',
   })
-  console.log('  ✓ Lotte: Tollwut Impfung, Bandscheibenoperation')
+  console.log('  ✓ Lotte (Berlin): Rabies, DHPP + Intervertebral Disc Surgery')
+
+  // ─ Susi Hamburg (English Setter/Labrador Mix, 4y) ─
+  await petRepo.addVaccine(susiHamburg.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2024-01-20',
+    nextDueDate: '2027-01-20',
+    veterinarianName: 'Dr. Jan Petersen',
+  })
+  await petRepo.addVaccine(susiHamburg.petId, {
+    vaccineName: 'DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)',
+    administeredDate: '2024-01-20',
+    nextDueDate: '2025-01-20',
+    veterinarianName: 'Dr. Jan Petersen',
+  })
+  await petRepo.addVaccine(susiHamburg.petId, {
+    vaccineName: 'Leptospirosis',
+    administeredDate: '2024-01-20',
+    nextDueDate: '2025-01-20',
+    veterinarianName: 'Dr. Jan Petersen',
+  })
+  await petRepo.addSurgery(susiHamburg.petId, {
+    surgeryType: 'Dental Cleaning',
+    surgeryDate: '2024-11-05',
+    notes: 'Annual dental cleaning under anesthesia, two teeth extracted',
+    recoveryInfo: 'Soft food for 5 days, antibiotics for 7 days',
+    veterinarianName: 'Dr. Jan Petersen',
+  })
+  console.log('  ✓ Susi (Hamburg): Rabies, DHPP, Leptospirosis + Dental Cleaning')
+
+  // ─ Timmi Köln (Domestic Shorthair, 6y) ─
+  await petRepo.addVaccine(timmiKoeln.petId, {
+    vaccineName: 'FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)',
+    administeredDate: '2024-03-10',
+    nextDueDate: '2025-03-10',
+    veterinarianName: 'Dr. Claudia Klein',
+  })
+  await petRepo.addVaccine(timmiKoeln.petId, {
+    vaccineName: 'FeLV (Feline Leukemia Virus)',
+    administeredDate: '2024-03-10',
+    nextDueDate: '2025-03-10',
+    veterinarianName: 'Dr. Claudia Klein',
+  })
+  await petRepo.addVaccine(timmiKoeln.petId, {
+    vaccineName: 'Rabies',
+    administeredDate: '2024-03-10',
+    nextDueDate: '2027-03-10',
+    veterinarianName: 'Dr. Claudia Klein',
+  })
+  await petRepo.addSurgery(timmiKoeln.petId, {
+    surgeryType: 'Neutering',
+    surgeryDate: '2020-07-15',
+    notes: 'Routine neutering at age 1 year',
+    recoveryInfo: 'Uncomplicated recovery in 7 days',
+    veterinarianName: 'Dr. Claudia Klein',
+  })
+  console.log('  ✓ Timmi (Köln): FVRCP, FeLV, Rabies + Neutering')
 
   // ── Summary ──────────────────────────────────────────────────────────────
   console.log('\n' + '═'.repeat(60))
   console.log('✅ Seed data created successfully!\n')
   console.log('Test Accounts (Login Credentials):')
-  console.log(`  Tierarzt:  ${VET_EMAIL} / ${VET_PASSWORD}`)
-  console.log(`  Besitzer (München): ${OWNER_EMAIL} / ${OWNER_PASSWORD}`)
-  console.log(`  Besitzer (Berlin):  ${OWNER2_EMAIL} / ${OWNER2_PASSWORD}`)
-  console.log(`  Besitzer (Hamburg):  ${OWNER3_EMAIL} / ${OWNER3_PASSWORD}`)
-  console.log(`  Besitzer (Köln):    ${OWNER4_EMAIL} / ${OWNER4_PASSWORD}\n`)
+  console.log(`  Vet:              ${VET_EMAIL} / ${VET_PASSWORD}`)
+  console.log(`  Owner (München):  ${OWNER_EMAIL} / ${OWNER_PASSWORD}`)
+  console.log(`  Owner (Berlin):   ${OWNER2_EMAIL} / ${OWNER2_PASSWORD}`)
+  console.log(`  Owner (Hamburg):  ${OWNER3_EMAIL} / ${OWNER3_PASSWORD}`)
+  console.log(`  Owner (Köln):     ${OWNER4_EMAIL} / ${OWNER4_PASSWORD}\n`)
   console.log('Clinics:')
   console.log(`  Tierarztpraxis Pfötchen   — München  (48.14, 11.58)`)
   console.log(`  Tierklinik am Volkspark   — Berlin   (52.55, 13.41)`)
