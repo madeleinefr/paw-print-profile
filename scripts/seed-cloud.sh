@@ -264,16 +264,6 @@ echo "  ✓ Minka (Domestic Shorthair) — Pending Claim (code: $MINKA_CODE)"
 IFS=: read OLIVE_ID OLIVE_CODE <<< "$(create_pet "Olive" "Dog" "Ridgeback" 1)"
 echo "  ✓ Olive (Ridgeback) — Pending Claim (code: $OLIVE_CODE)"
 
-# Susi — Active
-IFS=: read SUSI_ID SUSI_CODE <<< "$(create_pet "Susi" "Dog" "English Setter/Labrador Mix" 0)"
-claim_pet "$SUSI_CODE"
-echo "  ✓ Susi (English Setter/Labrador Mix) — Active"
-
-# Timmi — Active
-IFS=: read TIMMI_ID TIMMI_CODE <<< "$(create_pet "Timmi" "Cat" "Domestic Shorthair" 6)"
-claim_pet "$TIMMI_CODE"
-echo "  ✓ Timmi (Domestic Shorthair) — Active"
-
 # Nala — Missing
 IFS=: read NALA_ID NALA_CODE <<< "$(create_pet "Nala" "Cat" "Persian" 3)"
 claim_pet "$NALA_CODE"
@@ -283,10 +273,26 @@ echo "  ✓ Nala (Persian) — will be Missing"
 IFS=: read ASKARI_ID ASKARI_CODE <<< "$(create_pet "Askari" "Dog" "Australian Shepherd" 2)"
 echo "  ✓ Askari (Australian Shepherd) — Pending Claim (code: $ASKARI_CODE)"
 
-# Lotte — Active
-IFS=: read LOTTE_ID LOTTE_CODE <<< "$(create_pet "Lotte" "Dog" "Dachshund" 9)"
-claim_pet "$LOTTE_CODE"
-echo "  ✓ Lotte (Dachshund) — Active"
+# ── 3a. Upload photos for all pets ─────────────────────────────────────────
+
+echo ""
+echo "📷 Uploading pet photos..."
+
+# Claimed pets use owner token; pending-claim pets use vet token
+upload_image "$BALU_ID" "Balu.jpg" '"golden","retriever","friendly"' "$OWNER_TOKEN"
+echo "  ✓ Balu"
+upload_image "$LUNA_ID" "Luna.jpg" '"siamese","blue-eyes","cream"' "$OWNER_TOKEN"
+echo "  ✓ Luna"
+upload_image "$REX_ID" "Rex.jpg" '"german-shepherd","black-tan","large"' "$OWNER_TOKEN"
+echo "  ✓ Rex"
+upload_image "$MINKA_ID" "Minka.jpg" '"tabby","shorthair","green-eyes"' "$VET_TOKEN"
+echo "  ✓ Minka"
+upload_image "$OLIVE_ID" "Olive.jpg" '"ridgeback","brown","muscular"' "$VET_TOKEN"
+echo "  ✓ Olive"
+upload_image "$NALA_ID" "Nala.jpg" '"persian","white","fluffy","flat-face"' "$OWNER_TOKEN"
+echo "  ✓ Nala"
+upload_image "$ASKARI_ID" "Askari.jpg" '"australian-shepherd","blue-merle","heterochromia"' "$VET_TOKEN"
+echo "  ✓ Askari"
 
 # ── 3b. Additional owners in different cities ──────────────────────────────
 
@@ -458,6 +464,95 @@ echo "  ✓ Susi (English Setter/Labrador Mix) — owned by Lisa Wagner (Hamburg
 IFS=: read TIMMI_K_ID TIMMI_K_CODE <<< "$(create_pet_with_token "Timmi" "Cat" "Domestic Shorthair" 6 "$VET_KOELN_TOKEN")"
 claim_pet_as "$TIMMI_K_CODE" "Markus Becker" "$OWNER4_EMAIL" "+49-160-4567890" "$OWNER4_TOKEN"
 echo "  ✓ Timmi (Domestic Shorthair) — owned by Markus Becker (Köln)"
+
+# Upload photos for additional city pets
+echo ""
+echo "📷 Uploading photos for additional city pets..."
+upload_image "$LOTTE_B_ID" "Lotte.jpg" '"dachshund","brown","small","long-body"' "$OWNER2_TOKEN"
+echo "  ✓ Lotte (Berlin)"
+upload_image "$SUSI_H_ID" "Susi.jpg" '"setter-mix","brown-white","medium"' "$OWNER3_TOKEN"
+echo "  ✓ Susi (Hamburg)"
+upload_image "$TIMMI_K_ID" "Timmi.jpg" '"shorthair","orange-tabby","fluffy"' "$OWNER4_TOKEN"
+echo "  ✓ Timmi (Köln)"
+
+# ── 3c. Add medical records (vaccines & surgeries) ─────────────────────────
+
+echo ""
+echo "💉 Adding medical records..."
+
+add_vaccine() {
+  local petId=$1 vaccineName=$2 adminDate=$3 nextDue=$4 vetName=$5 token=$6
+  api_post "/pets/$petId/vaccines" "{\"vaccineName\":\"$vaccineName\",\"administeredDate\":\"$adminDate\",\"nextDueDate\":\"$nextDue\",\"veterinarianName\":\"$vetName\"}" "$token" > /dev/null
+}
+
+add_surgery() {
+  local petId=$1 surgeryType=$2 surgeryDate=$3 notes=$4 recoveryInfo=$5 vetName=$6 token=$7
+  api_post "/pets/$petId/surgeries" "{\"surgeryType\":\"$surgeryType\",\"surgeryDate\":\"$surgeryDate\",\"notes\":\"$notes\",\"recoveryInfo\":\"$recoveryInfo\",\"veterinarianName\":\"$vetName\"}" "$token" > /dev/null
+}
+
+# Balu (Golden Retriever, 3y) — München
+add_vaccine "$BALU_ID" "Rabies" "2024-06-15" "2025-06-15" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$BALU_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-06-15" "2025-06-15" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$BALU_ID" "Leptospirosis" "2024-06-15" "2025-06-15" "Dr. Sarah Weber" "$VET_TOKEN"
+add_surgery "$BALU_ID" "Neutering" "2023-03-10" "Routine procedure, no complications" "Full recovery in 10 days, bland diet for 3 days" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Balu: Rabies, DHPP, Leptospirosis + Neutering"
+
+# Luna (Siamese, 2y) — München
+add_vaccine "$LUNA_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-08-01" "2025-08-01" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$LUNA_ID" "Rabies" "2024-08-01" "2027-08-01" "Dr. Sarah Weber" "$VET_TOKEN"
+add_surgery "$LUNA_ID" "Spay" "2023-11-20" "Routine procedure, laparoscopic" "Recovery in 7 days, wear cone collar" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Luna: FVRCP, Rabies + Spay"
+
+# Rex (German Shepherd, 5y) — München
+add_vaccine "$REX_ID" "Rabies" "2024-04-10" "2027-04-10" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$REX_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-04-10" "2025-04-10" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$REX_ID" "Bordetella (Kennel Cough)" "2024-04-10" "2025-04-10" "Dr. Sarah Weber" "$VET_TOKEN"
+add_surgery "$REX_ID" "Cruciate Ligament Repair (TPLO)" "2023-09-15" "Left anterior cruciate ligament tear, TPLO method" "Strict rest 8 weeks, physiotherapy 3x/week" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Rex: Rabies, DHPP, Bordetella + Cruciate Ligament Repair"
+
+# Minka (Domestic Shorthair, 4y) — München (Pending Claim)
+add_vaccine "$MINKA_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-05-20" "2025-05-20" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$MINKA_ID" "FeLV (Feline Leukemia Virus)" "2024-05-20" "2025-05-20" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Minka: FVRCP, FeLV"
+
+# Olive (Ridgeback, 1y) — München (Pending Claim)
+add_vaccine "$OLIVE_ID" "Rabies" "2025-02-10" "2028-02-10" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$OLIVE_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2025-02-10" "2026-02-10" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$OLIVE_ID" "Leptospirosis" "2025-02-10" "2026-02-10" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Olive: Rabies, DHPP, Leptospirosis (Puppy primary vaccination)"
+
+# Nala (Persian, 3y) — München
+add_vaccine "$NALA_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-10-01" "2025-10-01" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$NALA_ID" "Rabies" "2024-10-01" "2027-10-01" "Dr. Sarah Weber" "$VET_TOKEN"
+add_surgery "$NALA_ID" "Spay" "2023-06-15" "Routine procedure, uncomplicated" "Recovery in 10 days, cone collar for 7 days" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Nala: FVRCP, Rabies + Spay"
+
+# Askari (Australian Shepherd, 2y) — München (Pending Claim)
+add_vaccine "$ASKARI_ID" "Rabies" "2025-01-15" "2028-01-15" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$ASKARI_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2025-01-15" "2026-01-15" "Dr. Sarah Weber" "$VET_TOKEN"
+add_vaccine "$ASKARI_ID" "Leptospirosis" "2025-01-15" "2026-01-15" "Dr. Sarah Weber" "$VET_TOKEN"
+add_surgery "$ASKARI_ID" "Neutering" "2024-08-20" "Routine neutering, no complications" "Recovery in 10 days, restricted activity" "Dr. Sarah Weber" "$VET_TOKEN"
+echo "  ✓ Askari: Rabies, DHPP, Leptospirosis + Neutering"
+
+# Lotte (Dachshund, 9y) — Berlin
+add_vaccine "$LOTTE_B_ID" "Rabies" "2024-09-01" "2027-09-01" "Dr. Michael Huber" "$VET_BERLIN_TOKEN"
+add_vaccine "$LOTTE_B_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-09-01" "2025-09-01" "Dr. Michael Huber" "$VET_BERLIN_TOKEN"
+add_surgery "$LOTTE_B_ID" "Intervertebral Disc Surgery" "2024-04-20" "Herniated disc L2-L3, minimally invasive (IVDD)" "Strict rest 6 weeks, physiotherapy recommended" "Dr. Michael Huber" "$VET_BERLIN_TOKEN"
+echo "  ✓ Lotte (Berlin): Rabies, DHPP + Intervertebral Disc Surgery"
+
+# Susi (English Setter/Labrador Mix, 4y) — Hamburg
+add_vaccine "$SUSI_H_ID" "Rabies" "2024-01-20" "2027-01-20" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
+add_vaccine "$SUSI_H_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-01-20" "2025-01-20" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
+add_vaccine "$SUSI_H_ID" "Leptospirosis" "2024-01-20" "2025-01-20" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
+add_surgery "$SUSI_H_ID" "Dental Cleaning" "2024-11-05" "Annual dental cleaning, two teeth extracted" "Soft food 5 days, antibiotics 7 days" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
+echo "  ✓ Susi (Hamburg): Rabies, DHPP, Leptospirosis + Dental Cleaning"
+
+# Timmi (Domestic Shorthair, 6y) — Köln
+add_vaccine "$TIMMI_K_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-03-10" "2025-03-10" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
+add_vaccine "$TIMMI_K_ID" "FeLV (Feline Leukemia Virus)" "2024-03-10" "2025-03-10" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
+add_vaccine "$TIMMI_K_ID" "Rabies" "2024-03-10" "2027-03-10" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
+add_surgery "$TIMMI_K_ID" "Neutering" "2020-07-15" "Routine neutering at age 1 year" "Uncomplicated recovery in 7 days" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
+echo "  ✓ Timmi (Köln): FVRCP, FeLV, Rabies + Neutering"
 
 # ── 4. Report some pets as missing ─────────────────────────────────────────
 
