@@ -21,7 +21,7 @@ All architectural decisions, requirements, and system designs are in the `docs/`
 
 | Layer | Technology |
 |-------|-----------|
-| Compute | AWS Lambda (Node.js 20 / TypeScript 5.3) |
+| Compute | AWS Lambda (Node.js 22 / TypeScript 5.3) |
 | Database | Amazon DynamoDB (single-table, 6 GSIs) |
 | Storage | Amazon S3 (pet images & PDF flyers) |
 | Auth | AWS Cognito (local: DynamoDB-backed LocalAuthService) |
@@ -36,6 +36,8 @@ All architectural decisions, requirements, and system designs are in the `docs/`
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2 installed
 - No other dependencies required — everything runs in containers
+
+> **Note:** No `.env` configuration needed for Docker-based development. All environment variables are set in `docker-compose.yml`. The `backend/.env` file is only used when running the backend directly outside Docker (e.g., for running tests locally with `npm test`).
 
 ### 1. Start all services
 
@@ -61,7 +63,7 @@ Wait ~30 seconds for all services to initialize (backend runs `npm ci` on first 
 docker compose exec backend npx tsx src/infrastructure/seed-data.ts
 ```
 
-This creates the DynamoDB table and populates it with German-localized test data including user accounts, pets, clinics, and medical records.
+This creates the DynamoDB table and populates it with test data including user accounts, pets with medical records, clinics, and veterinary history.
 
 ### 3. Log in
 
@@ -70,7 +72,10 @@ Open http://localhost:8080 and use these credentials:
 | Role | Email | Password |
 |------|-------|----------|
 | Veterinarian | `dr.weber@tierarzt-pfoetchen.de` | `Test1234!` |
-| Pet Owner | `anna.mueller@beispiel.de` | `Test1234!` |
+| Pet Owner (Munich) | `anna.mueller@beispiel.de` | `Test1234!` |
+| Pet Owner (Berlin) | `thomas.schmidt@beispiel.de` | `Test1234!` |
+| Pet Owner (Hamburg) | `lisa.wagner@beispiel.de` | `Test1234!` |
+| Pet Owner (Cologne) | `markus.becker@beispiel.de` | `Test1234!` |
 
 Or click **Sign up** to create a new account.
 
@@ -104,11 +109,90 @@ docker compose up -d         # Restart
 docker compose exec backend npx tsx src/infrastructure/seed-data.ts  # Re-seed
 ```
 
+## ☁️ AWS Cloud Deployment
+
+### Prerequisites
+
+- [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) installed and configured (`aws configure`)
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) installed
+- Node.js 20+ installed locally (for frontend build via `deploy-frontend.sh`)
+- An AWS account with permissions for Lambda, DynamoDB, S3, Cognito, API Gateway, SNS, and CloudFormation
+
+### 1. Deploy the backend
+
+```bash
+sam build
+sam deploy --guided
+```
+
+On first deploy, SAM will prompt for:
+- Stack name: `paw-print-profile`
+- Region: `eu-central-1` (or your preferred region)
+- Confirm changes and allow IAM role creation
+
+Subsequent deploys:
+
+```bash
+sam build && sam deploy
+```
+
+### 2. Deploy the frontend
+
+The frontend deploys to S3 + CloudFront. It automatically pulls the API URL from the backend stack outputs:
+
+```bash
+./scripts/deploy-frontend.sh
+```
+
+This script:
+1. Reads the API Gateway URL from the backend CloudFormation stack
+2. Deploys the frontend infrastructure (S3 bucket + CloudFront distribution) via `template-frontend.yaml`
+3. Builds the React app with the production API URL
+4. Uploads the build to S3 and invalidates the CloudFront cache
+
+CloudFront may take 5–10 minutes to propagate globally after the first deploy.
+
+### 3. Seed test data
+
+Once the backend is deployed, seed the cloud environment with test accounts and sample data:
+
+```bash
+./scripts/seed-cloud.sh
+```
+
+This creates:
+- Test user accounts (veterinarians and pet owners)
+- Veterinary clinics in multiple German cities (Munich, Berlin, Hamburg, Cologne)
+- Pet profiles in various states (Active, Pending Claim, Missing)
+- Sample missing pet reports with flyers
+
+### 4. Verify deployment
+
+After seeding, the script prints a summary with login credentials and claiming codes. You can verify the deployment by:
+
+1. Opening the CloudFront URL from the `deploy-frontend.sh` output
+2. Signing in with the test credentials printed by `seed-cloud.sh`
+3. Searching for missing pets on the public search page (no login required)
+
+### Cloud architecture
+
+The deployed stack includes:
+
+| Resource | Service |
+|----------|---------|
+| API | API Gateway (REST) with Cognito authorizer |
+| Compute | 5 Lambda functions (TypeScript, arm64) |
+| Database | DynamoDB (single-table, 6 GSIs, PAY_PER_REQUEST) |
+| Storage | S3 (pet images, flyers, care snapshots) |
+| Auth | Cognito User Pool with custom attributes |
+| Notifications | SNS topics (claiming confirmations, missing pet alerts) |
+| Frontend | S3 + CloudFront (SPA hosting) |
+
 ## 🧪 Running Tests
 
 Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, it's already running.
 
-### Backend (436 tests)
+### Backend (~464 tests)
 
 ```bash
 cd backend
@@ -120,7 +204,7 @@ npm run test:integration  # Integration tests only
 npm run test:coverage     # All tests + coverage report
 ```
 
-### Frontend (58 tests)
+### Frontend (~69 tests)
 
 ```bash
 cd frontend
@@ -131,9 +215,9 @@ npm run test:unit         # All frontend tests
 ### Test summary
 
 ```
-Backend:  436 tests, 20 files, ~25s (against LocalStack)
-Frontend:  58 tests,  4 files, <1s (fetch mocking)
-Total:    494 automated tests, all passing
+Backend:  ~464 tests, 26 files, ~25s (against LocalStack)
+Frontend:  ~69 tests,  4 files, <1s (fetch mocking)
+Total:    ~533 automated tests
 ```
 
 ## 📁 Project Structure
