@@ -43,7 +43,7 @@ All architectural decisions, requirements, and system designs are in the `docs/`
 
 ```bash
 git clone <repository-url>
-cd PawPrint
+cd paw-print-profile
 docker compose up -d
 ```
 
