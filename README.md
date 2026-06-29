@@ -57,6 +57,8 @@ This starts:
 
 Wait ~30 seconds for all services to initialize (backend runs `npm ci` on first start).
 
+> **Troubleshooting:** If the backend container stops, it likely started before LocalStack was ready. Run `docker compose up -d` again — the healthcheck ensures proper startup order. Check container status with `docker compose ps`.
+
 ### 2. Seed test data
 
 ```bash
