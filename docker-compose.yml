@@ -66,6 +66,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - ./seed-images:/seed-images:ro
     networks:
       - vet-pet-network
     command: sh -c "npm ci && npx tsx watch src/index.ts"
