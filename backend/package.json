@@ -10,7 +10,7 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:unit": "vitest run --reporter=verbose",
+    "test:unit": "vitest run --reporter=verbose tests/*.unit.test.ts",
     "test:property": "vitest run --reporter=verbose tests/*.property.test.ts",
     "test:integration": "vitest run --reporter=verbose tests/*.integration.test.ts",
     "test:coverage": "vitest run --coverage"

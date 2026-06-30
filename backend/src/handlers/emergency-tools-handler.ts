@@ -232,12 +232,21 @@ async function handleDownloadFlyer(
   if (pet.ownerId !== user.userId) return forbidden('You can only download flyers for your own pets')
   if (!pet.isMissing) return badRequest('NOT_MISSING', 'Pet is not currently reported as missing')
 
+  // Return the stored flyer URL from when the pet was reported missing
+  if (pet.flyerUrl) {
+    return respond(200, {
+      petId,
+      flyerUrl: pet.flyerUrl,
+      generatedAt: pet.updatedAt,
+    })
+  }
+
+  // Fallback: regenerate if no stored URL (e.g., legacy data)
   const clinic = await clinicRepo.findById(pet.clinicId)
   const images = await imageRepo.findByPet(petId)
 
-  // Generate flyer with clinic as default contact (privacy-safe) [FR-15]
   const result = await flyerService.generateFlyer(pet, clinic, images, {
-    lastSeenLocation: 'See original report for details',
+    lastSeenLocation: pet.lastSeenLocation || 'See original report for details',
     contactMethod: 'clinic',
   })
 

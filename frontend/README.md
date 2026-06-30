@@ -21,14 +21,15 @@ src/
 
 Routes are role-based and protected by `RouteGuard`:
 
-| Prefix      | Role Required | Examples                              |
-|-------------|---------------|---------------------------------------|
-| `/vet/*`    | `vet`         | Dashboard, pet CRUD, clinic settings  |
-| `/owner/*`  | `owner`       | Dashboard, claim profile, pet detail  |
-| `/search`   | none          | Public lost-pet search                |
-| `/care`     | none          | Time-limited care snapshot access     |
-| `/contact`  | none          | Anonymous owner contact form          |
-| `/login`    | none          | Login / signup                        |
+| Prefix      | Role Required | Examples                                  |
+|-------------|---------------|-------------------------------------------|
+| `/vet/*`    | `vet`         | Dashboard, pet CRUD, clinic settings      |
+| `/owner/*`  | `owner`       | Dashboard, claim profile, pet detail, account settings |
+| `/search`   | none          | Public lost-pet search + pet detail view  |
+| `/care`     | none          | Time-limited care snapshot access         |
+| `/contact`  | none          | Anonymous owner contact form              |
+| `/login`    | none          | Sign in                                   |
+| `/signup`   | none          | Sign up (role selection)                  |
 
 Default route (`/`) redirects to `/search`.
 

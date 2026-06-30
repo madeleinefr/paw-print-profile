@@ -1,16 +1,16 @@
 # Seed Images
 
-Place pet photos here for cloud seeding. Name them to match the pet names:
+Place pet photos here for local and cloud seeding. Name them to match the pet names (capitalized):
 
-- `balu.jpg` — Golden Retriever (Dog)
-- `luna.jpg` — Siamese (Cat)
-- `rex.jpg` — German Shepherd (Dog)
-- `minka.jpg` — Domestic Shorthair (Cat)
-- `olive.jpg` — Ridgeback (Dog, brown)
-- `susi.jpg` — English Setter/Labrador Mix (Dog, black white, puppy)
-- `timmi.jpg` — Domestic Shorthair (Cat)
-- `nala.jpg` — Persian (Cat)
-- `askari.jpg` — Australian Shepherd (Dog, white brown)
-- `lotte.jpg` — Dachshund (Dog)
+- `Balu.jpg` — Golden Retriever (Dog)
+- `Luna.jpg` — Siamese (Cat)
+- `Rex.jpg` — German Shepherd (Dog)
+- `Minka.jpg` — Domestic Shorthair (Cat)
+- `Olive.jpg` — Ridgeback (Dog, brown)
+- `Susi.jpg` — English Setter/Labrador Mix (Dog, black white)
+- `Timmi.jpg` — Domestic Shorthair (Cat)
+- `Nala.jpg` — Persian (Cat)
+- `Askari.jpg` — Australian Shepherd (Dog, white brown)
+- `Lotte.jpg` — Dachshund (Dog)
 
-Supported formats: JPEG, PNG, WebP (max 10MB each)
+Supported formats: JPEG, PNG (max 10MB each)

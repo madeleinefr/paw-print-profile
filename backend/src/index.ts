@@ -120,6 +120,7 @@ app.get('/clinics', wrap(clinicHandler))
 // ── Search routes ─────────────────────────────────────────────────────────────
 
 app.get('/search/pets', wrap(searchHandler))
+app.get('/search/:petId', wrap(searchHandler))
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 
