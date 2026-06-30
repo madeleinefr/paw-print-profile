@@ -106,17 +106,9 @@ Wait ~30 seconds for all services to initialize (backend runs `npm ci` on first 
 docker compose exec backend npx tsx src/infrastructure/seed-data.ts
 ```
 
-This creates the DynamoDB table and populates it with test data including user accounts, pets with medical records, clinics, and veterinary history.
+This creates the DynamoDB table and populates it with test data including user accounts, pets with medical records, clinics, pet images, and generated missing pet flyers.
 
-### 3. Seed pet images (optional)
-
-```bash
-docker compose exec backend npx tsx src/infrastructure/seed-images.ts
-```
-
-This uploads pet photos from the `seed-images/` directory to LocalStack S3. Search results and pet detail pages will display the images.
-
-### 4. Log in
+### 3. Log in
 
 Open `http://localhost:8080` and use these credentials:
 
