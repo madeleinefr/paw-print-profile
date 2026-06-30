@@ -206,13 +206,13 @@ Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, i
 cd backend
 npm install
 npm test                  # All tests
-npm run test:unit         # Unit tests only
-npm run test:property     # Property-based tests only
-npm run test:integration  # Integration tests only
+npm run test:unit         # Unit tests only (~218 tests)
+npm run test:property     # Property-based tests only (~167 tests)
+npm run test:integration  # Integration tests only (~65 tests)
 npm run test:coverage     # All tests + coverage report
 ```
 
-### Frontend (~69 tests)
+### Frontend (~58 tests)
 
 ```bash
 cd frontend
@@ -223,9 +223,9 @@ npm run test:unit         # All frontend tests
 ### Test summary
 
 ```
-Backend:  ~464 tests, 26 files, ~25s (against LocalStack)
-Frontend:  ~69 tests,  4 files, <1s (fetch mocking)
-Total:    ~533 automated tests
+Backend:  ~464 tests, 26 files, ~90s (against LocalStack)
+Frontend:  ~58 tests,  4 files, <1s (fetch mocking)
+Total:    ~522 automated tests
 ```
 
 ## 📁 Project Structure
@@ -244,15 +244,21 @@ PawPrint/
 │   └── tests/               # Property-based, unit, and integration tests
 ├── frontend/
 │   └── src/
+│       ├── api/             # HTTP client wrapper (typed requests, auth headers)
 │       ├── auth/            # Authentication context and route guards
+│       ├── components/      # Shared UI components (e.g., ImageUpload)
 │       ├── layout/          # App shell with role-based navigation
-│       └── pages/
-│           ├── vet/         # Veterinarian interface (B2B)
-│           ├── owner/       # Pet owner interface (B2C)
-│           └── public/      # Public interface (search, contact, care snapshots)
+│       ├── pages/
+│       │   ├── vet/         # Veterinarian interface (B2B)
+│       │   ├── owner/       # Pet owner interface (B2C)
+│       │   └── public/      # Public interface (search, contact, care snapshots)
+│       └── tests/           # Frontend integration tests
 ├── docs/                    # Architecture and requirements documentation
+├── scripts/                 # Deployment and seeding scripts
+├── seed-images/             # Pet photos for local development seeding
 ├── docker-compose.yml       # Local development environment
-└── .github/workflows/       # CI/CD pipeline (GitHub Actions)
+├── template.yaml            # AWS SAM template (backend infrastructure)
+└── template-frontend.yaml   # AWS SAM template (frontend S3 + CloudFront)
 ```
 
 ## 🔑 Key Concepts
