@@ -51,9 +51,9 @@ This starts:
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Frontend | http://localhost:8080 | React web application |
-| Backend | http://localhost:3000 | Express API server |
-| LocalStack | http://localhost:4566 | AWS emulator (DynamoDB, S3, SNS) |
+| Frontend | `http://localhost:8080` | React web application |
+| Backend | `http://localhost:3000` | Express API server |
+| LocalStack | `http://localhost:4566` | AWS emulator (DynamoDB, S3, SNS) |
 
 Wait ~30 seconds for all services to initialize (backend runs `npm ci` on first start).
 
@@ -77,7 +77,7 @@ This uploads pet photos from the `seed-images/` directory to LocalStack S3. Sear
 
 ### 3. Log in
 
-Open http://localhost:8080 and use these credentials:
+Open `http://localhost:8080` and use these credentials:
 
 | Role | Email | Password |
 |------|-------|----------|
