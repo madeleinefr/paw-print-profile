@@ -55,6 +55,11 @@ This UML Component Diagram (UML 2.5, SS11.6) illustrates the internal structural
 
 **Abstraction note:** For clarity, the diagram shows the primary domain-boundary services. Each compute component internally delegates to additional sub-services not shown here (e.g., Emergency Tools internally uses `FlyerGenerationService`, `MissingPetService`, `PhotoGuidanceService`, and `CareSnapshotService`; Pet Co-Onboarding uses `ProfileClaimingService`). An `AuthorizationService` is used as a cross-cutting concern by all handlers to enforce role-based access control.
 
+<img src="./screenshots/component-diagram.png" alt="UML Component Diagram showing the layered serverless architecture" width="800">
+
+<details>
+<summary>PlantUML source</summary>
+
 ```plantuml
 @startuml Component Diagram
 skinparam componentStyle uml2
@@ -141,11 +146,18 @@ Notify ..> SES : <<use>>
 @enduml
 ```
 
+</details>
+
 ### UML Use Case Diagram
 
 The Use Case Diagram (UML 2.5, SS18.1) maps the primary functional requirements to their authorized actors, highlighting the strict separation of concerns within the Co-Onboarding model. It visualizes how the initial "Medical Profile Creation" is securely restricted to the Veterinary Clinic, while the subsequent "Profile Claiming," "Enrichment," and "Flyer Generation" are exclusively handed over to the Pet Owner. Actors are represented as stick figures (external entities interacting with the system). Use cases are shown as ovals within the system boundary rectangle. Actor-to-use-case associations are plain lines (no arrowheads). Relationships between use cases use standard UML stereotypes: <<include>> for mandatory sub-behavior and <<extend>> for optional/conditional behavior.
 
 **Scope note:** For readability, this diagram shows the primary use cases that define the system's core value proposition. Additional sub-features (e.g., photo upload guidance, vaccine reminder scheduling, platform messaging delivery) are implemented but omitted here to maintain diagram clarity. The full set of implemented features is documented in the Requirements Verification document.
+
+<img src="./screenshots/use-case-diagram.png" alt="UML Use Case Diagram showing actor-to-use-case mappings" width="800">
+
+<details>
+<summary>PlantUML source</summary>
 
 ```plantuml
 @startuml Use Case Diagram
@@ -196,6 +208,8 @@ UC8 <.. UC14 : <<extend>>
 
 @enduml
 ```
+
+</details>
 
 ## Summary
 
