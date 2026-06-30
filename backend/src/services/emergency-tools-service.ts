@@ -125,7 +125,7 @@ export class EmergencyToolsService {
       ])
     }
 
-    // Mark pet as missing
+    // Mark pet as missing initially
     await this.petRepo.setMissingStatus(petId, true)
 
     // Get clinic info for flyer and notifications
@@ -136,6 +136,12 @@ export class EmergencyToolsService {
 
     // Generate the missing pet flyer PDF
     const flyerUrl = await this.generateMissingPetFlyer(pet, clinic, images, input)
+
+    // Persist flyer URL and last seen location on the pet record for later retrieval
+    await this.petRepo.setMissingStatus(petId, true, {
+      lastSeenLocation: input.lastSeenLocation,
+      flyerUrl,
+    })
 
     // Notify nearby clinics
     let notifiedClinics = 0

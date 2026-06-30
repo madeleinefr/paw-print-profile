@@ -702,13 +702,36 @@ export class PetRepository {
    * @param isMissing - Whether the pet is currently missing
    * @returns The updated pet record
    */
-  async setMissingStatus(petId: string, isMissing: boolean): Promise<Pet> {
+  async setMissingStatus(petId: string, isMissing: boolean, missingData?: { lastSeenLocation?: string; flyerUrl?: string }): Promise<Pet> {
     const now = new Date().toISOString()
+    let updateExpression = 'SET isMissing = :isMissing, updatedAt = :updatedAt'
+    const expressionAttributeValues: Record<string, any> = {
+      ':isMissing': isMissing,
+      ':updatedAt': now,
+    }
+    const removeFields: string[] = []
+
+    if (isMissing && missingData?.lastSeenLocation) {
+      updateExpression += ', lastSeenLocation = :lastSeenLocation'
+      expressionAttributeValues[':lastSeenLocation'] = missingData.lastSeenLocation
+    }
+    if (isMissing && missingData?.flyerUrl) {
+      updateExpression += ', flyerUrl = :flyerUrl'
+      expressionAttributeValues[':flyerUrl'] = missingData.flyerUrl
+    }
+    if (!isMissing) {
+      removeFields.push('lastSeenLocation', 'flyerUrl')
+    }
+
+    const fullExpression = removeFields.length > 0
+      ? `${updateExpression} REMOVE ${removeFields.join(', ')}`
+      : updateExpression
+
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: { PK: `PET#${petId}`, SK: 'METADATA' },
-      UpdateExpression: 'SET isMissing = :isMissing, updatedAt = :updatedAt',
-      ExpressionAttributeValues: { ':isMissing': isMissing, ':updatedAt': now },
+      UpdateExpression: fullExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
       ReturnValues: 'ALL_NEW',
     })
     const response = await this.docClient.send(command)

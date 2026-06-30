@@ -21,9 +21,56 @@
 import { DynamoDBTableInitializer } from './init-dynamodb'
 import { ClinicRepository } from '../repositories/clinic-repository'
 import { PetRepository } from '../repositories/pet-repository'
+import { ImageRepository } from '../repositories/image-repository'
 import { LocalAuthService } from '../services/local-auth-service'
+import { EmergencyToolsService } from '../services/emergency-tools-service'
+import { readFileSync, existsSync } from 'fs'
+import { join, resolve } from 'path'
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE || 'VetPetRegistry'
+
+/** Map of pet names to image tags */
+const IMAGE_TAGS: Record<string, string[]> = {
+  balu: ['golden', 'friendly', 'large'],
+  luna: ['siamese', 'blue-eyes', 'cream'],
+  rex: ['german-shepherd', 'black-tan', 'large'],
+  minka: ['tabby', 'domestic-shorthair', 'grey'],
+  olive: ['ridgeback', 'brown', 'muscular'],
+  nala: ['persian', 'fluffy', 'white'],
+  askari: ['australian-shepherd', 'white-brown', 'blue-eyes'],
+  lotte: ['dachshund', 'brown', 'small'],
+  susi: ['setter-mix', 'black-white', 'medium'],
+  timmi: ['domestic-shorthair', 'tabby', 'green-eyes'],
+}
+
+/** Upload a pet image if the file exists in seed-images/ */
+async function uploadPetImage(imageRepo: ImageRepository, petId: string, petName: string, seedImagesDir: string | null): Promise<void> {
+  if (!seedImagesDir) return
+  const nameLower = petName.toLowerCase()
+  const possibleFiles = [
+    join(seedImagesDir, `${petName}.jpg`),
+    join(seedImagesDir, `${nameLower}.jpg`),
+    join(seedImagesDir, `${petName}.png`),
+    join(seedImagesDir, `${nameLower}.png`),
+  ]
+  const imageFile = possibleFiles.find((f) => existsSync(f))
+  if (!imageFile) return
+
+  const imageBuffer = readFileSync(imageFile)
+  const mimeType = imageFile.endsWith('.png') ? 'image/png' : 'image/jpeg'
+  const tags = IMAGE_TAGS[nameLower] || []
+  await imageRepo.upload({ petId, imageBuffer: Buffer.from(imageBuffer), mimeType, tags })
+}
+
+/** Resolve the seed-images directory */
+function findSeedImagesDir(): string | null {
+  const possiblePaths = [
+    resolve('/seed-images'),
+    resolve(process.cwd(), '../seed-images'),
+    resolve(process.cwd(), 'seed-images'),
+  ]
+  return possiblePaths.find((p) => existsSync(p)) || null
+}
 
 async function seed() {
   console.log('🌱 Seeding test data...\n')
@@ -41,6 +88,12 @@ async function seed() {
   const clinicRepo = new ClinicRepository(TABLE_NAME)
   const petRepo = new PetRepository(TABLE_NAME)
   const authService = new LocalAuthService()
+  const emergencyService = new EmergencyToolsService(TABLE_NAME)
+  const imageRepo = new ImageRepository(TABLE_NAME)
+  const seedImagesDir = findSeedImagesDir()
+  if (seedImagesDir) {
+    console.log(`  Found seed images at: ${seedImagesDir}\n`)
+  }
 
   // ── Idempotency check: skip if data already exists ───────────────────────
   if (exists) {
@@ -157,6 +210,7 @@ async function seed() {
     ownerZipCode: '80802',
     ownerCity: 'München',
   })
+  await uploadPetImage(imageRepo, buddy.petId, 'Balu', seedImagesDir)
   console.log(`  ✓ Balu (Golden Retriever, 3y) — Active, owned by ${OWNER_ID}`)
 
   // Pet 2: Claimed + Missing (owned by owner-1) — shows up in public search
@@ -180,7 +234,12 @@ async function seed() {
     ownerZipCode: '80802',
     ownerCity: 'München',
   })
-  await petRepo.setMissingStatus(luna.petId, true)
+  await uploadPetImage(imageRepo, luna.petId, 'Luna', seedImagesDir)
+  await emergencyService.reportMissing(luna.petId, OWNER_ID, {
+    searchRadiusKm: 25,
+    lastSeenLocation: 'Englischer Garten, near Monopteros, München',
+    contactMethod: 'clinic',
+  })
   console.log(`  ✓ Luna (Siamese, 2y) — MISSING, owned by ${OWNER_ID}`)
 
   // Pet 3: Claimed + Missing (owned by owner-1)
@@ -204,7 +263,12 @@ async function seed() {
     ownerZipCode: '80802',
     ownerCity: 'München',
   })
-  await petRepo.setMissingStatus(max.petId, true)
+  await uploadPetImage(imageRepo, max.petId, 'Rex', seedImagesDir)
+  await emergencyService.reportMissing(max.petId, OWNER_ID, {
+    searchRadiusKm: 50,
+    lastSeenLocation: 'Olympiapark, near BMW Welt, München',
+    contactMethod: 'clinic',
+  })
   console.log(`  ✓ Rex (German Shepherd, 5y) — MISSING, owned by ${OWNER_ID}`)
 
   // Pet 4: Pending Claim (not yet claimed — vet can see claiming code)
@@ -216,6 +280,7 @@ async function seed() {
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
+  await uploadPetImage(imageRepo, whiskers.petId, 'Minka', seedImagesDir)
   console.log(`  ✓ Minka (Domestic Shorthair, 4y) — Pending Claim (code: ${whiskers.claimingCode})`)
 
   // Pet 5: Pending Claim
@@ -227,6 +292,7 @@ async function seed() {
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
+  await uploadPetImage(imageRepo, charlie.petId, 'Olive', seedImagesDir)
   console.log(`  ✓ Olive (Ridgeback, 1y) — Pending Claim (code: ${charlie.claimingCode})`)
 
   // Pet 8: Claimed + Missing (owned by owner-1) — another missing Cat
@@ -250,7 +316,12 @@ async function seed() {
     ownerZipCode: '80802',
     ownerCity: 'München',
   })
-  await petRepo.setMissingStatus(nala.petId, true)
+  await uploadPetImage(imageRepo, nala.petId, 'Nala', seedImagesDir)
+  await emergencyService.reportMissing(nala.petId, OWNER_ID, {
+    searchRadiusKm: 10,
+    lastSeenLocation: 'Maxvorstadt, near Pinakothek der Moderne, München',
+    contactMethod: 'clinic',
+  })
   console.log(`  ✓ Nala (Persian, 3y) — MISSING, owned by ${OWNER_ID}`)
 
   // Pet 9: Pending Claim — Dog
@@ -262,6 +333,7 @@ async function seed() {
     clinicId: clinic.clinicId,
     verifyingVetId: VET_ID,
   })
+  await uploadPetImage(imageRepo, rocky.petId, 'Askari', seedImagesDir)
   console.log(`  ✓ Askari (Australian Shepherd, 2y) — Pending Claim (code: ${rocky.claimingCode})`)
 
   // ── 2b. Additional owners, clinics, and pets in other cities ─────────────
@@ -426,7 +498,12 @@ async function seed() {
     ownerZipCode: '10435',
     ownerCity: 'Berlin',
   })
-  await petRepo.setMissingStatus(lotteBerlin.petId, true)
+  await uploadPetImage(imageRepo, lotteBerlin.petId, 'Lotte', seedImagesDir)
+  await emergencyService.reportMissing(lotteBerlin.petId, owner2UserId, {
+    searchRadiusKm: 25,
+    lastSeenLocation: 'Prenzlauer Berg, Helmholtzplatz, Berlin',
+    contactMethod: 'clinic',
+  })
   console.log(`  ✓ Lotte (Dachshund, 9y) — MISSING, owned by Thomas Schmidt (Berlin)`)
 
   // Susi → owned by Lisa Wagner in Hamburg
@@ -450,7 +527,12 @@ async function seed() {
     ownerZipCode: '20259',
     ownerCity: 'Hamburg',
   })
-  await petRepo.setMissingStatus(susiHamburg.petId, true)
+  await uploadPetImage(imageRepo, susiHamburg.petId, 'Susi', seedImagesDir)
+  await emergencyService.reportMissing(susiHamburg.petId, owner3UserId, {
+    searchRadiusKm: 30,
+    lastSeenLocation: 'Eppendorfer Park, near the pond, Hamburg',
+    contactMethod: 'clinic',
+  })
   console.log(`  ✓ Susi (English Setter/Labrador Mix, 4y) — MISSING, owned by Lisa Wagner (Hamburg)`)
 
   // Timmi → owned by Markus Becker in Köln
@@ -474,7 +556,12 @@ async function seed() {
     ownerZipCode: '50674',
     ownerCity: 'Köln',
   })
-  await petRepo.setMissingStatus(timmiKoeln.petId, true)
+  await uploadPetImage(imageRepo, timmiKoeln.petId, 'Timmi', seedImagesDir)
+  await emergencyService.reportMissing(timmiKoeln.petId, owner4UserId, {
+    searchRadiusKm: 15,
+    lastSeenLocation: 'Stadtgarten, near Mediapark, Köln',
+    contactMethod: 'clinic',
+  })
   console.log(`  ✓ Timmi (Domestic Shorthair, 6y) — MISSING, owned by Markus Becker (Köln)`)
 
   // ── 3. Add medical records ───────────────────────────────────────────────
