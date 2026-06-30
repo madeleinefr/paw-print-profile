@@ -12,7 +12,7 @@
  * Validates: [FR-11], [FR-12], [FR-15], [NFR-SEC-03]
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Hospital, Phone, MapPin, Mail, Navigation } from 'lucide-react'
 import { api, ApiException } from '../api/client'
@@ -87,8 +87,7 @@ const RADIUS_OPTIONS = [
 export function SearchPage() {
   const [filters, setFilters] = useState({ species: '', breed: '', ageMin: '', ageMax: '', tags: '', location: '', radius: '25' })
   const [results, setResults] = useState<SearchResult[]>([])
-  const [searched, setSearched] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null)
 
@@ -96,25 +95,25 @@ export function SearchPage() {
     setFilters((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
+  /** Fetch results from the API based on current filters */
+  async function fetchResults(currentFilters?: typeof filters) {
+    const f = currentFilters || filters
     setLoading(true)
     setError(null)
-    setSearched(true)
     setGeocodedLocation(null)
 
     try {
       const params: Record<string, string> = {}
-      if (filters.species.trim()) params.species = filters.species.trim()
-      if (filters.breed.trim()) params.breed = filters.breed.trim()
-      if (filters.ageMin.trim()) params.ageMin = filters.ageMin.trim()
-      if (filters.ageMax.trim()) params.ageMax = filters.ageMax.trim()
-      if (filters.tags.trim()) params.tags = filters.tags.trim()
+      if (f.species.trim()) params.species = f.species.trim()
+      if (f.breed.trim()) params.breed = f.breed.trim()
+      if (f.ageMin.trim()) params.ageMin = f.ageMin.trim()
+      if (f.ageMax.trim()) params.ageMax = f.ageMax.trim()
+      if (f.tags.trim()) params.tags = f.tags.trim()
 
       // Add location parameters if provided
-      if (filters.location.trim()) {
-        params.location = filters.location.trim()
-        params.radius = filters.radius
+      if (f.location.trim()) {
+        params.location = f.location.trim()
+        params.radius = f.radius
       }
 
       const data = await api.get<SearchResponse>('/search/pets', params)
@@ -134,19 +133,29 @@ export function SearchPage() {
     }
   }
 
+  // Load all missing pets on mount
+  useEffect(() => {
+    fetchResults()
+  }, [])
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    await fetchResults()
+  }
+
   function handleClear() {
-    setFilters({ species: '', breed: '', ageMin: '', ageMax: '', tags: '', location: '', radius: '25' })
-    setResults([])
-    setSearched(false)
+    const emptyFilters = { species: '', breed: '', ageMin: '', ageMax: '', tags: '', location: '', radius: '25' }
+    setFilters(emptyFilters)
     setError(null)
     setGeocodedLocation(null)
+    fetchResults(emptyFilters)
   }
 
   return (
     <div>
-      <h2>Search Lost Pets</h2>
+      <h2>Missing Pets</h2>
       <p className="text-muted" style={{ marginBottom: '20px' }}>
-        Search for missing pets in your area. No account required.
+        All currently missing pets are shown below. Use the filters to narrow results. No account required.
       </p>
 
       {/* Search filters */}
@@ -157,7 +166,7 @@ export function SearchPage() {
             onChange={(e) => updateFilter('species', e.target.value)}
             aria-label="Species"
           >
-            <option value="">All Species</option>
+            <option value="">All species</option>
             <option value="Dog">Dog</option>
             <option value="Cat">Cat</option>
             <option value="Bird">Bird</option>
@@ -223,10 +232,10 @@ export function SearchPage() {
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button type="submit" disabled={loading}>
-            {loading ? 'Searching...' : 'Search'}
+            {loading ? 'Filtering...' : 'Filter'}
           </button>
           <button type="button" className="btn-secondary" onClick={handleClear}>
-            Clear
+            Clear filters
           </button>
         </div>
       </form>
@@ -234,7 +243,7 @@ export function SearchPage() {
       {error && <p style={{ color: '#c33', marginBottom: '15px' }}>{error}</p>}
 
       {/* Location info banner */}
-      {geocodedLocation && searched && !loading && (
+      {geocodedLocation && !loading && (
         <div style={{ background: '#f0f9f4', border: '1px solid #b2dfdb', borderRadius: '8px', padding: '10px 16px', marginBottom: '16px', fontSize: '0.85rem', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Navigation size={16} />
           Searching within {filters.radius} km of {geocodedLocation.displayName}
@@ -242,14 +251,14 @@ export function SearchPage() {
       )}
 
       {/* Privacy notice [FR-15] */}
-      {searched && (
+      {results.length > 0 && (
         <div style={{ background: '#e8f4fd', border: '1px solid #b8daff', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', fontSize: '0.85rem', color: '#004085' }}>
           Owner contact information is protected. Use the contact form to reach pet owners anonymously. Clinic contact details are shown for each result.
         </div>
       )}
 
       {/* Results */}
-      {searched && !loading && results.length === 0 && (
+      {!loading && results.length === 0 && (
         <p className="text-muted" style={{ textAlign: 'center', padding: '30px 0' }}>
           No missing pets found matching your criteria. Try broadening your search.
         </p>
