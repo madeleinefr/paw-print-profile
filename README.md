@@ -7,16 +7,16 @@ Veterinary clinics create medically verified pet profiles ("Co-Onboarding"), whi
 ## 📸 Screenshots
 
 ### Public Lost Pet Search
-![Public search results showing missing pets with clinic contact info](./docs/screenshots/search.png)
+<img src="./docs/screenshots/search.png" alt="Public search results showing missing pets with clinic contact info" width="600">
 
 ### Pet Owner Dashboard
-![Owner dashboard with pet cards and Report Missing button](./docs/screenshots/owner-dashboard.png)
+<img src="./docs/screenshots/owner-dashboard.png" alt="Owner dashboard with pet cards and Report Missing button" width="600">
 
 ### Veterinarian Clinic Dashboard
-![Vet dashboard showing pending claims with claiming codes](./docs/screenshots/vet-dashboard.png)
+<img src="./docs/screenshots/vet-dashboard.png" alt="Vet dashboard showing pending claims with claiming codes" width="600">
 
 ### Missing Pet Flyer (Generated PDF)
-![Generated missing pet flyer with pet photo and clinic contact](./docs/screenshots/flyer.png)
+<img src="./docs/screenshots/flyer.png" alt="Generated missing pet flyer with pet photo and clinic contact" width="600">
 
 ## 📚 Documentation
 
