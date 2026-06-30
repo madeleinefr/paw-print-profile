@@ -4,6 +4,20 @@ A B2B2C serverless web application that modernizes veterinary record-keeping and
 
 Veterinary clinics create medically verified pet profiles ("Co-Onboarding"), which pet owners claim, enrich with photos and personal data, and use to generate emergency missing pet flyers or secure care snapshots for temporary caregivers.
 
+## 📸 Screenshots
+
+### Public Lost Pet Search
+![Public search results showing missing pets with clinic contact info](./docs/screenshots/search.png)
+
+### Pet Owner Dashboard
+![Owner dashboard with pet cards and Report Missing button](./docs/screenshots/owner-dashboard.png)
+
+### Veterinarian Clinic Dashboard
+![Vet dashboard showing pending claims with claiming codes](./docs/screenshots/vet-dashboard.png)
+
+### Missing Pet Flyer (Generated PDF)
+![Generated missing pet flyer with pet photo and clinic contact](./docs/screenshots/flyer.png)
+
 ## 📚 Documentation
 
 All architectural decisions, requirements, and system designs are in the `docs/` directory:
@@ -56,6 +70,11 @@ This starts:
 Wait ~30 seconds for all services to initialize (backend runs `npm ci` on first start).
 
 > **Troubleshooting:** If the backend container stops, it likely started before LocalStack was ready. Run `docker compose up -d` again — the healthcheck ensures proper startup order. Check container status with `docker compose ps`. Wait until the backend shows `(healthy)` before running seed commands.
+
+> **Data loss after sleep/restart:** LocalStack stores DynamoDB tables in memory. If your machine sleeps or the container restarts, the table is lost. Re-run the seed command to recreate it:
+> ```bash
+> docker compose exec backend npx tsx src/infrastructure/seed-data.ts
+> ```
 
 ### 2. Seed test data
 
