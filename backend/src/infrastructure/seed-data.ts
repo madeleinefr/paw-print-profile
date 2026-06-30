@@ -35,12 +35,23 @@ async function seed() {
     console.log('Creating DynamoDB table...')
     await initializer.createTable({ tableName: TABLE_NAME })
   } else {
-    console.log('Table already exists — seeding into existing table.')
+    console.log('Table already exists — checking for existing data...')
   }
 
   const clinicRepo = new ClinicRepository(TABLE_NAME)
   const petRepo = new PetRepository(TABLE_NAME)
   const authService = new LocalAuthService()
+
+  // ── Idempotency check: skip if data already exists ───────────────────────
+  if (exists) {
+    const existingVet = await authService.getUserByEmail('dr.weber@tierarzt-pfoetchen.de')
+    if (existingVet) {
+      console.log('\n⚠️  Seed data already exists (found vet account). Skipping.')
+      console.log('   To re-seed, run: docker compose down -v && docker compose up -d')
+      console.log('   Then run this script again.\n')
+      return
+    }
+  }
 
   // ── 0. Create test user accounts ────────────────────────────────────────
   console.log('\n🔑 Creating test user accounts...')
