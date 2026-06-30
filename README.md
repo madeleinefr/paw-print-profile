@@ -11,11 +11,9 @@ All architectural decisions, requirements, and system designs are in the `docs/`
 - [Project Profile & Glossary](./docs/01_project_profile.md)
 - [System Requirements](./docs/02_requirements.md)
 - [Architecture & Diagrams](./docs/03_architecture.md)
-- [Design & Implementation](./docs/05_design_and_implementation.md)
-- [Frameworks & Tools](./docs/06_frameworks_and_tools.md)
+- [Correctness Properties](./docs/04_correctness_properties.md)
+- [Frameworks & Tools](./docs/05_frameworks_and_tools.md)
 - [Test Case Specifications](./docs/07_test_case_specifications.md)
-- [Requirements Verification](./docs/08_requirements_verification.md)
-- [Testing Strategy](./docs/09_testing_strategy.md)
 
 ## 🛠️ Technology Stack
 
