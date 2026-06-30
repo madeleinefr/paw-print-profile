@@ -6,17 +6,17 @@ Veterinary clinics create medically verified pet profiles ("Co-Onboarding"), whi
 
 ## Table of Contents
 
-- [Key Concepts](#-key-concepts)
-- [Features](#-features)
-- [Screenshots](#-screenshots)
-- [Quick Start](#-quick-start)
-- [Technology Stack](#️-technology-stack)
-- [Running Tests](#-running-tests)
-- [Project Structure](#-project-structure)
-- [AWS Cloud Deployment](#️-aws-cloud-deployment)
-- [Documentation](#-documentation)
+- [Key Concepts](#key-concepts)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Quick Start](#quick-start)
+- [Technology Stack](#technology-stack)
+- [Running Tests](#running-tests)
+- [Project Structure](#project-structure)
+- [AWS Cloud Deployment](#aws-cloud-deployment)
+- [Documentation](#documentation)
 
-## 🔑 Key Concepts
+## Key Concepts
 
 ### Co-Onboarding Model
 1. **Veterinarian** creates a medically verified pet profile → generates a claiming code
@@ -31,7 +31,7 @@ Owner phone numbers and email addresses are hidden from public search results. P
 2. Enter last seen location + confirm
 3. Download the generated PDF flyer
 
-## 🎯 Features
+## Features
 
 **Public (no login required):**
 - Search for missing pets by species, breed, and location
@@ -52,7 +52,7 @@ Owner phone numbers and email addresses are hidden from public search results. P
 - Generate care snapshots for temporary caregivers
 - Manage account settings (contact details, address)
 
-## 📸 Screenshots
+## Screenshots
 
 ### Public Lost Pet Search
 <img src="./docs/screenshots/search.png" alt="Public search results showing missing pets with clinic contact info" width="600">
@@ -66,7 +66,7 @@ Owner phone numbers and email addresses are hidden from public search results. P
 ### Missing Pet Flyer (Generated PDF)
 <img src="./docs/screenshots/flyer.png" alt="Generated missing pet flyer with pet photo and clinic contact" width="600">
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -139,7 +139,7 @@ docker compose up -d         # Restart
 docker compose exec backend npx tsx src/infrastructure/seed-data.ts  # Re-seed
 ```
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -152,7 +152,7 @@ docker compose exec backend npx tsx src/infrastructure/seed-data.ts  # Re-seed
 | Testing | Vitest, fast-check (property-based testing) |
 | Local Dev | Docker Compose, LocalStack 3.8 |
 
-## 🧪 Running Tests
+## Running Tests
 
 Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, it's already running.
 
@@ -184,7 +184,7 @@ Frontend:  ~58 tests,  4 files, <1s (fetch mocking)
 Total:    ~522 automated tests
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 PawPrint/
@@ -214,11 +214,10 @@ PawPrint/
 ├── seed-images/             # Pet photos for local development seeding
 ├── docker-compose.yml       # Local development environment
 ├── template.yaml            # AWS SAM template (backend infrastructure)
-├── template-frontend.yaml   # AWS SAM template (frontend S3 + CloudFront)
-└── .github/workflows/       # CI/CD pipeline (GitHub Actions)
+└── template-frontend.yaml   # AWS SAM template (frontend S3 + CloudFront)
 ```
 
-## ☁️ AWS Cloud Deployment
+## AWS Cloud Deployment
 
 ### Prerequisites
 
@@ -297,7 +296,7 @@ The deployed stack includes:
 | Notifications | SNS topics (claiming confirmations, missing pet alerts) |
 | Frontend | S3 + CloudFront (SPA hosting) |
 
-## 📚 Documentation
+## Documentation
 
 All architectural decisions, requirements, and system designs are in the `docs/` directory:
 
