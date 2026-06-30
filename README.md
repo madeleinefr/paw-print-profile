@@ -4,6 +4,54 @@ A B2B2C serverless web application that modernizes veterinary record-keeping and
 
 Veterinary clinics create medically verified pet profiles ("Co-Onboarding"), which pet owners claim, enrich with photos and personal data, and use to generate emergency missing pet flyers or secure care snapshots for temporary caregivers.
 
+## Table of Contents
+
+- [Key Concepts](#-key-concepts)
+- [Features](#-features)
+- [Screenshots](#-screenshots)
+- [Quick Start](#-quick-start)
+- [Technology Stack](#️-technology-stack)
+- [Running Tests](#-running-tests)
+- [Project Structure](#-project-structure)
+- [AWS Cloud Deployment](#️-aws-cloud-deployment)
+- [Documentation](#-documentation)
+
+## 🔑 Key Concepts
+
+### Co-Onboarding Model
+1. **Veterinarian** creates a medically verified pet profile → generates a claiming code
+2. **Pet Owner** claims the profile using the code → enriches with photos and contact info
+3. **Public** can search for missing pets and contact owners anonymously
+
+### Privacy Protection
+Owner phone numbers and email addresses are hidden from public search results. Public users contact owners through an anonymous messaging form. Clinic contact information is always displayed.
+
+### 3-Click Missing Pet Flyer
+1. Click "Report Missing" on the pet dashboard
+2. Enter last seen location + confirm
+3. Download the generated PDF flyer
+
+## 🎯 Features
+
+**Public (no login required):**
+- Search for missing pets by species, breed, and location
+- Contact a pet owner anonymously via the platform messaging form
+- Access care snapshots using a time-limited access code
+
+**As Veterinarian:**
+- Register a clinic and manage clinic settings
+- Create medically verified pet profiles with claiming codes
+- Add vaccine and surgery records
+- View pending claims on the clinic dashboard
+
+**As Pet Owner:**
+- Claim a pet profile using a claiming code (provided by vet)
+- Report a pet as missing → download a generated PDF flyer
+- Mark a missing pet as found (notifies nearby clinics)
+- Upload pet photos (with photography guidance)
+- Generate care snapshots for temporary caregivers
+- Manage account settings (contact details, address)
+
 ## 📸 Screenshots
 
 ### Public Lost Pet Search
@@ -17,30 +65,6 @@ Veterinary clinics create medically verified pet profiles ("Co-Onboarding"), whi
 
 ### Missing Pet Flyer (Generated PDF)
 <img src="./docs/screenshots/flyer.png" alt="Generated missing pet flyer with pet photo and clinic contact" width="600">
-
-## 📚 Documentation
-
-All architectural decisions, requirements, and system designs are in the `docs/` directory:
-
-- [Project Profile & Glossary](./docs/01_project_profile.md)
-- [System Requirements](./docs/02_requirements.md)
-- [Architecture & Diagrams](./docs/03_architecture.md)
-- [Correctness Properties](./docs/04_correctness_properties.md)
-- [Frameworks & Tools](./docs/05_frameworks_and_tools.md)
-- [Test Case Specifications](./docs/07_test_case_specifications.md)
-
-## 🛠️ Technology Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Compute | AWS Lambda (Node.js 22 / TypeScript 5.3) |
-| Database | Amazon DynamoDB (single-table, 6 GSIs) |
-| Storage | Amazon S3 (pet images & PDF flyers) |
-| Auth | AWS Cognito (local: DynamoDB-backed LocalAuthService) |
-| Notifications | Amazon SNS / SES |
-| Frontend | React 18, Vite, React Router v6 |
-| Testing | Vitest, fast-check (property-based testing) |
-| Local Dev | Docker Compose, LocalStack 3.8 |
 
 ## 🚀 Quick Start
 
@@ -92,7 +116,7 @@ docker compose exec backend npx tsx src/infrastructure/seed-images.ts
 
 This uploads pet photos from the `seed-images/` directory to LocalStack S3. Search results and pet detail pages will display the images.
 
-### 3. Log in
+### 4. Log in
 
 Open `http://localhost:8080` and use these credentials:
 
@@ -106,27 +130,6 @@ Open `http://localhost:8080` and use these credentials:
 
 Or click **Sign up** to create a new account.
 
-### 4. Explore the features
-
-**Public (no login required):**
-- Search for missing pets by species/breed
-- Contact a pet owner anonymously via the contact form
-- Access care snapshots using an access code
-
-**As Veterinarian:**
-- View clinic dashboard with pending claims and claiming codes
-- Create new medical pet profiles
-- Add vaccine and surgery records
-- Manage clinic settings
-
-**As Pet Owner:**
-- Claim a pet profile using a claiming code (copy from vet dashboard)
-- Report a pet as missing → download PDF flyer
-- Mark a missing pet as found
-- Upload pet photos (with photography guidance)
-- Generate care snapshots for temporary caregivers
-- Manage account settings (contact details, address)
-
 ### Stopping / Resetting
 
 ```bash
@@ -134,6 +137,85 @@ docker compose down          # Stop all services
 docker compose down -v       # Stop and remove volumes (full reset)
 docker compose up -d         # Restart
 docker compose exec backend npx tsx src/infrastructure/seed-data.ts  # Re-seed
+```
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Compute | AWS Lambda (Node.js 22 / TypeScript 5.3) |
+| Database | Amazon DynamoDB (single-table, 6 GSIs) |
+| Storage | Amazon S3 (pet images & PDF flyers) |
+| Auth | AWS Cognito (local: DynamoDB-backed LocalAuthService) |
+| Notifications | Amazon SNS / SES |
+| Frontend | React 18, Vite, React Router v6 |
+| Testing | Vitest, fast-check (property-based testing) |
+| Local Dev | Docker Compose, LocalStack 3.8 |
+
+## 🧪 Running Tests
+
+Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, it's already running.
+
+### Backend (~464 tests)
+
+```bash
+cd backend
+npm install
+npm test                  # All tests
+npm run test:unit         # Unit tests only (~218 tests)
+npm run test:property     # Property-based tests only (~167 tests)
+npm run test:integration  # Integration tests only (~65 tests)
+npm run test:coverage     # All tests + coverage report
+```
+
+### Frontend (~58 tests)
+
+```bash
+cd frontend
+npm install
+npm run test:unit         # All frontend tests
+```
+
+### Test summary
+
+```
+Backend:  ~464 tests, 26 files, ~90s (against LocalStack)
+Frontend:  ~58 tests,  4 files, <1s (fetch mocking)
+Total:    ~522 automated tests
+```
+
+## 📁 Project Structure
+
+```
+PawPrint/
+├── backend/
+│   ├── src/
+│   │   ├── errors/          # Centralized error handling
+│   │   ├── handlers/        # Lambda handlers (Express wrappers locally)
+│   │   ├── infrastructure/  # AWS clients, environment detection, DB init, seed data
+│   │   ├── models/          # TypeScript interfaces (DynamoDB entities)
+│   │   ├── repositories/    # Data access layer (DynamoDB, S3)
+│   │   ├── services/        # Business logic (co-onboarding, search, emergency tools)
+│   │   └── validation/      # Input validation
+│   └── tests/               # Property-based, unit, and integration tests
+├── frontend/
+│   └── src/
+│       ├── api/             # HTTP client wrapper (typed requests, auth headers)
+│       ├── auth/            # Authentication context and route guards
+│       ├── components/      # Shared UI components (e.g., ImageUpload)
+│       ├── layout/          # App shell with role-based navigation
+│       ├── pages/
+│       │   ├── vet/         # Veterinarian interface (B2B)
+│       │   ├── owner/       # Pet owner interface (B2C)
+│       │   └── public/      # Public interface (search, contact, care snapshots)
+│       └── tests/           # Frontend integration tests
+├── docs/                    # Architecture and requirements documentation
+├── scripts/                 # Deployment and seeding scripts
+├── seed-images/             # Pet photos for local development seeding
+├── docker-compose.yml       # Local development environment
+├── template.yaml            # AWS SAM template (backend infrastructure)
+├── template-frontend.yaml   # AWS SAM template (frontend S3 + CloudFront)
+└── .github/workflows/       # CI/CD pipeline (GitHub Actions)
 ```
 
 ## ☁️ AWS Cloud Deployment
@@ -215,82 +297,13 @@ The deployed stack includes:
 | Notifications | SNS topics (claiming confirmations, missing pet alerts) |
 | Frontend | S3 + CloudFront (SPA hosting) |
 
-## 🧪 Running Tests
+## 📚 Documentation
 
-Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, it's already running.
+All architectural decisions, requirements, and system designs are in the `docs/` directory:
 
-### Backend (~464 tests)
-
-```bash
-cd backend
-npm install
-npm test                  # All tests
-npm run test:unit         # Unit tests only (~218 tests)
-npm run test:property     # Property-based tests only (~167 tests)
-npm run test:integration  # Integration tests only (~65 tests)
-npm run test:coverage     # All tests + coverage report
-```
-
-### Frontend (~58 tests)
-
-```bash
-cd frontend
-npm install
-npm run test:unit         # All frontend tests
-```
-
-### Test summary
-
-```
-Backend:  ~464 tests, 26 files, ~90s (against LocalStack)
-Frontend:  ~58 tests,  4 files, <1s (fetch mocking)
-Total:    ~522 automated tests
-```
-
-## 📁 Project Structure
-
-```
-PawPrint/
-├── backend/
-│   ├── src/
-│   │   ├── errors/          # Centralized error handling
-│   │   ├── handlers/        # Lambda handlers (Express wrappers locally)
-│   │   ├── infrastructure/  # AWS clients, environment detection, DB init, seed data
-│   │   ├── models/          # TypeScript interfaces (DynamoDB entities)
-│   │   ├── repositories/    # Data access layer (DynamoDB, S3)
-│   │   ├── services/        # Business logic (co-onboarding, search, emergency tools)
-│   │   └── validation/      # Input validation
-│   └── tests/               # Property-based, unit, and integration tests
-├── frontend/
-│   └── src/
-│       ├── api/             # HTTP client wrapper (typed requests, auth headers)
-│       ├── auth/            # Authentication context and route guards
-│       ├── components/      # Shared UI components (e.g., ImageUpload)
-│       ├── layout/          # App shell with role-based navigation
-│       ├── pages/
-│       │   ├── vet/         # Veterinarian interface (B2B)
-│       │   ├── owner/       # Pet owner interface (B2C)
-│       │   └── public/      # Public interface (search, contact, care snapshots)
-│       └── tests/           # Frontend integration tests
-├── docs/                    # Architecture and requirements documentation
-├── scripts/                 # Deployment and seeding scripts
-├── seed-images/             # Pet photos for local development seeding
-├── docker-compose.yml       # Local development environment
-├── template.yaml            # AWS SAM template (backend infrastructure)
-└── template-frontend.yaml   # AWS SAM template (frontend S3 + CloudFront)
-```
-
-## 🔑 Key Concepts
-
-### Co-Onboarding Model
-1. **Veterinarian** creates a medically verified pet profile → generates a claiming code
-2. **Pet Owner** claims the profile using the code → enriches with photos and contact info
-3. **Public** can search for missing pets and contact owners anonymously
-
-### Privacy Protection
-Owner phone numbers and email addresses are hidden from public search results. Public users contact owners through an anonymous messaging form. Clinic contact information is always displayed.
-
-### 3-Click Missing Pet Flyer
-1. Click "Report Missing" on the pet dashboard
-2. Enter last seen location + confirm
-3. Download the generated PDF flyer
+- [Project Profile & Glossary](./docs/01_project_profile.md)
+- [System Requirements](./docs/02_requirements.md)
+- [Architecture & Diagrams](./docs/03_architecture.md)
+- [Correctness Properties](./docs/04_correctness_properties.md)
+- [Frameworks & Tools](./docs/05_frameworks_and_tools.md)
+- [Test Case Specifications](./docs/07_test_case_specifications.md)
