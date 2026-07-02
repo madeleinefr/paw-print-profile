@@ -31,13 +31,13 @@ const TABLE_NAME = process.env.DYNAMODB_TABLE || 'VetPetRegistry'
 
 /** Map of pet names to image tags */
 const IMAGE_TAGS: Record<string, string[]> = {
-  balu: ['golden', 'friendly', 'large'],
+  balu: ['golden', 'retriever', 'friendly', 'large'],
   luna: ['siamese', 'blue-eyes', 'cream'],
   rex: ['german-shepherd', 'black-tan', 'large'],
-  minka: ['tabby', 'domestic-shorthair', 'grey'],
+  minka: ['tuxedo', 'domestic-shorthair', 'grey'],
   olive: ['ridgeback', 'brown', 'muscular'],
   nala: ['persian', 'fluffy', 'white'],
-  askari: ['australian-shepherd', 'white-brown', 'blue-eyes'],
+  askari: ['australian-shepherd', 'white-brown', 'brown-eyes'],
   lotte: ['dachshund', 'brown', 'small'],
   susi: ['setter-mix', 'black-white', 'medium'],
   timmi: ['domestic-shorthair', 'tabby', 'green-eyes'],
@@ -73,12 +73,23 @@ function findSeedImagesDir(): string | null {
 }
 
 async function seed() {
-  console.log('🌱 Seeding test data...\n')
+  const forceReset = process.argv.includes('--force')
+
+  if (forceReset) {
+    console.log('Resetting data (--force flag detected)...\n')
+  } else {
+    console.log('Seeding test data...\n')
+  }
 
   // ── Ensure table exists ──────────────────────────────────────────────────
   const initializer = new DynamoDBTableInitializer(TABLE_NAME)
   const exists = await initializer.tableExists(TABLE_NAME)
-  if (!exists) {
+
+  if (forceReset && exists) {
+    await initializer.deleteTable(TABLE_NAME)
+    console.log('')
+    await initializer.createTable({ tableName: TABLE_NAME })
+  } else if (!exists) {
     console.log('Creating DynamoDB table...')
     await initializer.createTable({ tableName: TABLE_NAME })
   } else {
@@ -95,13 +106,13 @@ async function seed() {
     console.log(`  Found seed images at: ${seedImagesDir}\n`)
   }
 
-  // ── Idempotency check: skip if data already exists ───────────────────────
-  if (exists) {
+  // ── Idempotency check: skip if data already exists (unless --force) ────
+  if (exists && !forceReset) {
     const existingVet = await authService.getUserByEmail('dr.weber@tierarzt-pfoetchen.de')
     if (existingVet) {
-      console.log('\n⚠️  Seed data already exists (found vet account). Skipping.')
-      console.log('   To re-seed, run: docker compose down -v && docker compose up -d')
-      console.log('   Then run this script again.\n')
+      console.log('\n[SKIP] Seed data already exists (found vet account). Skipping.')
+      console.log('   To re-seed from scratch, run with --force:')
+      console.log('   docker compose exec backend npx tsx src/infrastructure/seed-data.ts --force\n')
       return
     }
   }

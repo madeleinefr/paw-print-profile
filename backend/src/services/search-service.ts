@@ -254,6 +254,11 @@ export class SearchService {
             if (additionalCriteria.ageMax !== undefined && pet.age > additionalCriteria.ageMax) {
               continue
             }
+            if (additionalCriteria.tags && additionalCriteria.tags.length > 0) {
+              const petTags = pet.tags || []
+              const hasAllTags = additionalCriteria.tags.every(tag => petTags.includes(tag))
+              if (!hasAllTags) continue
+            }
           }
 
           // Get images for this pet

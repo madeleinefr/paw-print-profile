@@ -19,10 +19,10 @@ STACK_NAME="paw-print-profile-frontend"
 BACKEND_STACK_NAME="paw-print-profile"
 REGION="eu-central-1"
 
-echo "🚀 Deploying frontend for environment: $ENVIRONMENT"
+echo "Deploying frontend for environment: $ENVIRONMENT"
 
 # Step 1: Get the API Gateway URL from the backend stack
-echo "📡 Getting API URL from backend stack..."
+echo "Getting API URL from backend stack..."
 API_URL=$(aws cloudformation describe-stacks \
   --stack-name "$BACKEND_STACK_NAME" \
   --region "$REGION" \
@@ -30,15 +30,15 @@ API_URL=$(aws cloudformation describe-stacks \
   --output text)
 
 if [ -z "$API_URL" ]; then
-  echo "❌ Could not find API URL from backend stack '$BACKEND_STACK_NAME'"
+  echo "Could not find API URL from backend stack '$BACKEND_STACK_NAME'"
   echo "   Make sure the backend is deployed first: sam deploy --guided"
   exit 1
 fi
 
-echo "✅ API URL: $API_URL"
+echo "API URL: $API_URL"
 
 # Step 2: Deploy the frontend infrastructure (S3 + CloudFront) if not already done
-echo "🏗️  Deploying frontend infrastructure (S3 + CloudFront)..."
+echo "Deploying frontend infrastructure (S3 + CloudFront)..."
 aws cloudformation deploy \
   --template-file template-frontend.yaml \
   --stack-name "$STACK_NAME" \
@@ -66,30 +66,30 @@ FRONTEND_URL=$(aws cloudformation describe-stacks \
   --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" \
   --output text)
 
-echo "✅ S3 Bucket: $BUCKET_NAME"
-echo "✅ CloudFront Distribution: $DISTRIBUTION_ID"
+echo "S3 Bucket: $BUCKET_NAME"
+echo "CloudFront Distribution: $DISTRIBUTION_ID"
 
 # Step 4: Build the React app with the production API URL
-echo "🔨 Building React app..."
+echo "Building React app..."
 cd frontend
 VITE_API_URL="$API_URL" npm run build
 cd ..
 
 # Step 5: Upload to S3
-echo "📤 Uploading to S3..."
+echo "Uploading to S3..."
 aws s3 sync frontend/dist/ "s3://$BUCKET_NAME" \
   --delete \
   --region "$REGION"
 
 # Step 6: Invalidate CloudFront cache
-echo "🔄 Invalidating CloudFront cache..."
+echo "Invalidating CloudFront cache..."
 aws cloudfront create-invalidation \
   --distribution-id "$DISTRIBUTION_ID" \
   --paths "/*" \
   --region "$REGION" > /dev/null
 
 echo ""
-echo "✅ Frontend deployed successfully!"
-echo "🌐 URL: $FRONTEND_URL"
+echo "Frontend deployed successfully!"
+echo "URL: $FRONTEND_URL"
 echo ""
 echo "Note: CloudFront may take 5-10 minutes to propagate globally."

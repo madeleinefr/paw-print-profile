@@ -126,9 +126,10 @@ Or click **Sign up** to create a new account.
 
 ```bash
 docker compose down          # Stop all services
-docker compose down -v       # Stop and remove volumes (full reset)
 docker compose up -d         # Restart
-docker compose exec backend npx tsx src/infrastructure/seed-data.ts  # Re-seed
+
+# Re-seed without restarting containers:
+docker compose exec backend npx tsx src/infrastructure/seed-data.ts --force
 ```
 
 ## Technology Stack
