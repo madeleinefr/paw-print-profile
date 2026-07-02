@@ -55,6 +55,12 @@ This UML Component Diagram (UML 2.5, SS11.6) illustrates the internal structural
 
 **Abstraction note:** For clarity, the diagram shows the primary domain-boundary services. Each compute component internally delegates to additional sub-services not shown here (e.g., Emergency Tools internally uses `FlyerGenerationService`, `MissingPetService`, `PhotoGuidanceService`, and `CareSnapshotService`; Pet Co-Onboarding uses `ProfileClaimingService`). An `AuthorizationService` is used as a cross-cutting concern by all handlers to enforce role-based access control.
 
+**Authentication note:** User management operations (sign-up, sign-in, token refresh, profile updates) are handled by a dedicated Auth Lambda handler (`auth-handler.ts`) that wraps Cognito SDK calls. This handler is not shown as a separate compute component because it acts as a thin proxy to AWS Cognito rather than implementing domain logic. API Gateway's Cognito Authorizer independently validates JWT tokens on all protected endpoints.
+
+**Notification note:** The Notification Service is shown as a compute component for conceptual clarity, but in practice it is an internal service class (`NotificationService`) invoked from within the Pet Co-Onboarding and Emergency Tools handlers. It does not have its own Lambda function or API endpoint — it publishes directly to SNS/SES topics when triggered by business logic.
+
+**Client Layer note:** The three client components shown represent logical role-based interfaces, not three separately deployed applications. The actual implementation is a single React SPA with role-based route groups (`/vet/*`, `/owner/*`, and public routes like `/search`). A `RouteGuard` component enforces access based on the authenticated user's role, redirecting unauthorized users.
+
 <img src="./screenshots/component-diagram.png" alt="UML Component Diagram showing the layered serverless architecture" width="800">
 
 <details>

@@ -16,7 +16,7 @@ FRONTEND_STACK_NAME="paw-print-profile-frontend"
 echo "🔨 Building SAM template..."
 sam build
 
-echo "📦 Installing pdfkit into EmergencyTools Lambda package..."
+echo "Installing pdfkit into EmergencyTools Lambda package..."
 npm install --prefix .aws-sam/build/EmergencyToolsFunction pdfkit --quiet 2>/dev/null
 
 # Resolve frontend URL from CloudFront stack (if deployed)
@@ -29,12 +29,12 @@ FRONTEND_URL=$(aws cloudformation describe-stacks \
 
 if [ -n "$FRONTEND_URL" ] && [ "$FRONTEND_URL" != "None" ]; then
   APP_BASE_URL="$FRONTEND_URL"
-  echo "🌐 Frontend URL resolved: $APP_BASE_URL"
+  echo "Frontend URL resolved: $APP_BASE_URL"
 else
-  echo "⚠ Frontend stack not found, using default: $APP_BASE_URL"
+  echo "Frontend stack not found, using default: $APP_BASE_URL"
 fi
 
-echo "🚀 Deploying..."
+echo "Deploying..."
 sam deploy --no-confirm-changeset --parameter-overrides "AppBaseUrl=$APP_BASE_URL"
 
-echo "✅ Backend deployed successfully!"
+echo "Backend deployed successfully!"

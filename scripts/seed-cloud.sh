@@ -23,11 +23,11 @@ API_URL=$(aws cloudformation describe-stacks \
   --output text | sed 's/\/$//')
 
 if [ -z "$API_URL" ]; then
-  echo "❌ Could not find API URL. Is the backend deployed?"
+  echo "Could not find API URL. Is the backend deployed?"
   exit 1
 fi
 
-echo "🌱 Seeding cloud deployment at: $API_URL"
+echo "Seeding cloud deployment at: $API_URL"
 echo ""
 
 # ── Helper functions ────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ api_get() {
 
 # ── 1. Create accounts ─────────────────────────────────────────────────────
 
-echo "🔑 Creating test accounts..."
+echo "Creating test accounts..."
 
 VET_EMAIL="dr.weber@tierarzt-pfoetchen.de"
 VET_PASSWORD="Test1234!"
@@ -66,44 +66,44 @@ OWNER_PASSWORD="Test1234!"
 VET_RESULT=$(api_post "/auth/signup" "{\"email\":\"$VET_EMAIL\",\"password\":\"$VET_PASSWORD\",\"userType\":\"vet\"}")
 VET_ID=$(echo "$VET_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('userId',''))" 2>/dev/null || echo "")
 if [ -z "$VET_ID" ]; then
-  echo "  ⚠ Vet account may already exist, trying to sign in..."
+  echo "Vet account may already exist, trying to sign in..."
 fi
-echo "  ✓ Vet: $VET_EMAIL / $VET_PASSWORD"
+echo "Vet: $VET_EMAIL / $VET_PASSWORD"
 
 # Sign up owner
 OWNER_RESULT=$(api_post "/auth/signup" "{\"email\":\"$OWNER_EMAIL\",\"password\":\"$OWNER_PASSWORD\",\"userType\":\"owner\"}")
 OWNER_ID=$(echo "$OWNER_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('userId',''))" 2>/dev/null || echo "")
 if [ -z "$OWNER_ID" ]; then
-  echo "  ⚠ Owner account may already exist, trying to sign in..."
+  echo "Owner account may already exist, trying to sign in..."
 fi
-echo "  ✓ Owner: $OWNER_EMAIL / $OWNER_PASSWORD"
+echo "Owner: $OWNER_EMAIL / $OWNER_PASSWORD"
 
 # Sign in as vet to get token
 echo ""
-echo "🔐 Signing in..."
+echo "Signing in..."
 VET_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$VET_EMAIL\",\"password\":\"$VET_PASSWORD\"}")
 VET_TOKEN=$(echo "$VET_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
 
 if [ -z "$VET_TOKEN" ]; then
-  echo "❌ Failed to sign in as vet. Response: $VET_TOKENS"
+  echo "Failed to sign in as vet. Response: $VET_TOKENS"
   exit 1
 fi
-echo "  ✓ Vet signed in"
+echo "Vet signed in"
 
 # Sign in as owner to get token
 OWNER_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER_EMAIL\",\"password\":\"$OWNER_PASSWORD\"}")
 OWNER_TOKEN=$(echo "$OWNER_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
 
 if [ -z "$OWNER_TOKEN" ]; then
-  echo "❌ Failed to sign in as owner. Response: $OWNER_TOKENS"
+  echo "Failed to sign in as owner. Response: $OWNER_TOKENS"
   exit 1
 fi
-echo "  ✓ Owner signed in"
+echo "Owner signed in"
 
 # ── 2. Create clinic ───────────────────────────────────────────────────────
 
 echo ""
-echo "🏥 Creating clinic..."
+echo "Creating clinic..."
 CLINIC_RESULT=$(api_post "/clinics" '{
   "name": "Tierarztpraxis Pfötchen",
   "address": "Hauptstraße 42",
@@ -119,13 +119,13 @@ CLINIC_RESULT=$(api_post "/clinics" '{
 
 CLINIC_ID=$(echo "$CLINIC_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
 if [ -z "$CLINIC_ID" ]; then
-  echo "  ⚠ Clinic may already exist. Response: $CLINIC_RESULT"
+  echo "Clinic may already exist. Response: $CLINIC_RESULT"
   CLINIC_ID="existing"
 else
-  echo "  ✓ Clinic created: $CLINIC_ID"
+  echo "Clinic created: $CLINIC_ID"
   # Associate clinic with vet via API
   api_post "/auth/associate-clinic" "{\"clinicId\":\"$CLINIC_ID\"}" "$VET_TOKEN" > /dev/null
-  echo "  ✓ Vet associated with clinic"
+  echo "Vet associated with clinic"
   
   # Also update the Cognito user attribute directly so the token reflects clinicId
   USER_POOL_ID=$(aws cloudformation describe-stacks \
@@ -162,19 +162,19 @@ fi
 # ── 3. Create pets ─────────────────────────────────────────────────────────
 
 echo ""
-echo "🐾 Creating pet profiles..."
+echo "Creating pet profiles..."
 
 # Verify vet token works by creating a test pet then deleting it
 TEST_RESULT=$(api_post "/pets" '{"name":"_test","species":"Dog","breed":"Test","age":1}' "$VET_TOKEN")
 TEST_ID=$(echo "$TEST_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
 if [ -z "$TEST_ID" ]; then
-  echo "  ❌ Vet token not working for pet creation. Response: $(echo $TEST_RESULT | head -c 200)"
+  echo "Vet token not working for pet creation. Response: $(echo $TEST_RESULT | head -c 200)"
   echo "  Token (first 50 chars): ${VET_TOKEN:0:50}..."
   exit 1
 fi
 # Clean up the test pet
 curl -s -X DELETE "$API_URL/pets/$TEST_ID" -H "Authorization: Bearer $VET_TOKEN" -H "Content-Type: application/json" > /dev/null
-echo "  ✓ Vet token verified"
+echo "Vet token verified"
 
 create_pet() {
   local name=$1 species=$2 breed=$3 age=$4
@@ -182,10 +182,10 @@ create_pet() {
   local petId=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
   local code=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('claimingCode',''))" 2>/dev/null)
   if [ -z "$petId" ]; then
-    echo "    ⚠ Failed to create $name. Response: $(echo $result | head -c 200)" >&2
+    echo "Failed to create $name. Response: $(echo $result | head -c 200)" >&2
   fi
   if [ -z "$code" ]; then
-    echo "    ⚠ No claiming code returned for $name" >&2
+    echo "No claiming code returned for $name" >&2
   fi
   echo "$petId:$code"
 }
@@ -193,13 +193,13 @@ create_pet() {
 claim_pet() {
   local code=$1
   if [ -z "$code" ]; then
-    echo "    ⚠ No claiming code provided, skipping claim" >&2
+    echo "No claiming code provided, skipping claim" >&2
     return
   fi
   local result=$(api_post "/pets/claim" "{\"claimingCode\":\"$code\",\"ownerName\":\"Anna Mueller\",\"ownerEmail\":\"anna.mueller@beispiel.de\",\"ownerPhone\":\"+49-176-12345678\"}" "$OWNER_TOKEN")
   local status=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('profileStatus','FAILED'))" 2>/dev/null)
   if [ "$status" != "Active" ]; then
-    echo "    ⚠ Claim failed: $result" >&2
+    echo "Claim failed: $result" >&2
   fi
 }
 
@@ -207,7 +207,7 @@ upload_image() {
   local petId=$1 filename=$2 tags=$3 token=$4
   local filepath="seed-images/$filename"
   if [ ! -f "$filepath" ]; then
-    echo "    ⚠ Image not found: $filepath"
+    echo "Image not found: $filepath"
     return
   fi
   local mimeType="image/jpeg"
@@ -244,60 +244,60 @@ if filepath != '$filepath':
 # Balu — Active
 IFS=: read BALU_ID BALU_CODE <<< "$(create_pet "Balu" "Dog" "Golden Retriever" 3)"
 claim_pet "$BALU_CODE"
-echo "  ✓ Balu (Golden Retriever) — Active"
+echo "Balu (Golden Retriever) — Active"
 
 # Luna — Missing
 IFS=: read LUNA_ID LUNA_CODE <<< "$(create_pet "Luna" "Cat" "Siamese" 2)"
 claim_pet "$LUNA_CODE"
-echo "  ✓ Luna (Siamese) — will be Missing"
+echo "Luna (Siamese) — will be Missing"
 
 # Rex — Missing
 IFS=: read REX_ID REX_CODE <<< "$(create_pet "Rex" "Dog" "German Shepherd" 5)"
 claim_pet "$REX_CODE"
-echo "  ✓ Rex (German Shepherd) — will be Missing"
+echo "Rex (German Shepherd) — will be Missing"
 
 # Minka — Pending Claim
 IFS=: read MINKA_ID MINKA_CODE <<< "$(create_pet "Minka" "Cat" "Domestic Shorthair" 4)"
-echo "  ✓ Minka (Domestic Shorthair) — Pending Claim (code: $MINKA_CODE)"
+echo "Minka (Domestic Shorthair) — Pending Claim (code: $MINKA_CODE)"
 
 # Olive — Pending Claim
 IFS=: read OLIVE_ID OLIVE_CODE <<< "$(create_pet "Olive" "Dog" "Ridgeback" 1)"
-echo "  ✓ Olive (Ridgeback) — Pending Claim (code: $OLIVE_CODE)"
+echo "Olive (Ridgeback) — Pending Claim (code: $OLIVE_CODE)"
 
 # Nala — Missing
 IFS=: read NALA_ID NALA_CODE <<< "$(create_pet "Nala" "Cat" "Persian" 3)"
 claim_pet "$NALA_CODE"
-echo "  ✓ Nala (Persian) — will be Missing"
+echo "Nala (Persian) — will be Missing"
 
 # Askari — Pending Claim
 IFS=: read ASKARI_ID ASKARI_CODE <<< "$(create_pet "Askari" "Dog" "Australian Shepherd" 2)"
-echo "  ✓ Askari (Australian Shepherd) — Pending Claim (code: $ASKARI_CODE)"
+echo "Askari (Australian Shepherd) — Pending Claim (code: $ASKARI_CODE)"
 
 # ── 3a. Upload photos for all pets ─────────────────────────────────────────
 
 echo ""
-echo "📷 Uploading pet photos..."
+echo "Uploading pet photos..."
 
 # Claimed pets use owner token; pending-claim pets use vet token
 upload_image "$BALU_ID" "Balu.jpg" '"golden","retriever","friendly"' "$OWNER_TOKEN"
-echo "  ✓ Balu"
+echo "Balu"
 upload_image "$LUNA_ID" "Luna.jpg" '"siamese","blue-eyes","cream"' "$OWNER_TOKEN"
-echo "  ✓ Luna"
+echo "Luna"
 upload_image "$REX_ID" "Rex.jpg" '"german-shepherd","black-tan","large"' "$OWNER_TOKEN"
-echo "  ✓ Rex"
-upload_image "$MINKA_ID" "Minka.jpg" '"tabby","shorthair","green-eyes"' "$VET_TOKEN"
-echo "  ✓ Minka"
+echo "Rex"
+upload_image "$MINKA_ID" "Minka.jpg" '"tuxedo","shorthair","grey"' "$VET_TOKEN"
+echo "Minka"
 upload_image "$OLIVE_ID" "Olive.jpg" '"ridgeback","brown","muscular"' "$VET_TOKEN"
-echo "  ✓ Olive"
-upload_image "$NALA_ID" "Nala.jpg" '"persian","white","fluffy","flat-face"' "$OWNER_TOKEN"
-echo "  ✓ Nala"
-upload_image "$ASKARI_ID" "Askari.jpg" '"australian-shepherd","blue-merle","heterochromia"' "$VET_TOKEN"
-echo "  ✓ Askari"
+echo "Olive"
+upload_image "$NALA_ID" "Nala.jpg" '"persian","white","fluffy"' "$OWNER_TOKEN"
+echo "Nala"
+upload_image "$ASKARI_ID" "Askari.jpg" '"australian-shepherd","brown-eyes","white-brown"' "$VET_TOKEN"
+echo "Askari"
 
 # ── 3b. Additional owners in different cities ──────────────────────────────
 
 echo ""
-echo "🔑 Creating additional owner accounts..."
+echo "Creating additional owner accounts..."
 
 OWNER2_EMAIL="thomas.schmidt@beispiel.de"
 OWNER2_PASSWORD="Test1234!"
@@ -307,29 +307,29 @@ OWNER4_EMAIL="markus.becker@beispiel.de"
 OWNER4_PASSWORD="Test1234!"
 
 api_post "/auth/signup" "{\"email\":\"$OWNER2_EMAIL\",\"password\":\"$OWNER2_PASSWORD\",\"userType\":\"owner\"}" > /dev/null 2>&1
-echo "  ✓ Owner: $OWNER2_EMAIL / $OWNER2_PASSWORD (Berlin)"
+echo "Owner: $OWNER2_EMAIL / $OWNER2_PASSWORD (Berlin)"
 
 api_post "/auth/signup" "{\"email\":\"$OWNER3_EMAIL\",\"password\":\"$OWNER3_PASSWORD\",\"userType\":\"owner\"}" > /dev/null 2>&1
-echo "  ✓ Owner: $OWNER3_EMAIL / $OWNER3_PASSWORD (Hamburg)"
+echo "Owner: $OWNER3_EMAIL / $OWNER3_PASSWORD (Hamburg)"
 
 api_post "/auth/signup" "{\"email\":\"$OWNER4_EMAIL\",\"password\":\"$OWNER4_PASSWORD\",\"userType\":\"owner\"}" > /dev/null 2>&1
-echo "  ✓ Owner: $OWNER4_EMAIL / $OWNER4_PASSWORD (Köln)"
+echo "Owner: $OWNER4_EMAIL / $OWNER4_PASSWORD (Köln)"
 
 # Sign in as additional owners
 OWNER2_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER2_EMAIL\",\"password\":\"$OWNER2_PASSWORD\"}")
 OWNER2_TOKEN=$(echo "$OWNER2_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
-echo "  ✓ Thomas signed in"
+echo "Thomas signed in"
 
 OWNER3_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER3_EMAIL\",\"password\":\"$OWNER3_PASSWORD\"}")
 OWNER3_TOKEN=$(echo "$OWNER3_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
-echo "  ✓ Lisa signed in"
+echo "Lisa signed in"
 
 OWNER4_TOKENS=$(api_post "/auth/signin" "{\"email\":\"$OWNER4_EMAIL\",\"password\":\"$OWNER4_PASSWORD\"}")
 OWNER4_TOKEN=$(echo "$OWNER4_TOKENS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
-echo "  ✓ Markus signed in"
+echo "Markus signed in"
 
 echo ""
-echo "🏥 Creating additional clinics..."
+echo "Creating additional clinics..."
 
 # Berlin clinic
 CLINIC_BERLIN_RESULT=$(api_post "/clinics" '{
@@ -345,7 +345,7 @@ CLINIC_BERLIN_RESULT=$(api_post "/clinics" '{
   "longitude": 13.4130
 }' "$VET_TOKEN")
 CLINIC_BERLIN_ID=$(echo "$CLINIC_BERLIN_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
-echo "  ✓ Tierklinik am Volkspark (Berlin): $CLINIC_BERLIN_ID"
+echo "Tierklinik am Volkspark (Berlin): $CLINIC_BERLIN_ID"
 
 # Hamburg clinic
 CLINIC_HAMBURG_RESULT=$(api_post "/clinics" '{
@@ -361,7 +361,7 @@ CLINIC_HAMBURG_RESULT=$(api_post "/clinics" '{
   "longitude": 9.9210
 }' "$VET_TOKEN")
 CLINIC_HAMBURG_ID=$(echo "$CLINIC_HAMBURG_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
-echo "  ✓ Tierärzte Elbchaussee (Hamburg): $CLINIC_HAMBURG_ID"
+echo "Tierärzte Elbchaussee (Hamburg): $CLINIC_HAMBURG_ID"
 
 # Köln clinic
 CLINIC_KOELN_RESULT=$(api_post "/clinics" '{
@@ -377,11 +377,11 @@ CLINIC_KOELN_RESULT=$(api_post "/clinics" '{
   "longitude": 6.9400
 }' "$VET_TOKEN")
 CLINIC_KOELN_ID=$(echo "$CLINIC_KOELN_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('clinicId',''))" 2>/dev/null)
-echo "  ✓ Kleintierpraxis am Dom (Köln): $CLINIC_KOELN_ID"
+echo "Kleintierpraxis am Dom (Köln): $CLINIC_KOELN_ID"
 
 # Create vet accounts for each new clinic
 echo ""
-echo "🔑 Creating vet accounts for new clinics..."
+echo "Creating vet accounts for new clinics..."
 
 VET_BERLIN_EMAIL="dr.huber@tierklinik-volkspark.de"
 VET_HAMBURG_EMAIL="dr.petersen@elbchaussee.de"
@@ -403,21 +403,21 @@ aws cognito-idp admin-update-user-attributes \
   --username "$VET_BERLIN_EMAIL" \
   --user-attributes Name="custom:clinicId",Value="$CLINIC_BERLIN_ID" \
   --region "$REGION" 2>/dev/null
-echo "  ✓ Dr. Huber → Tierklinik am Volkspark (Berlin)"
+echo "Dr. Huber → Tierklinik am Volkspark (Berlin)"
 
 aws cognito-idp admin-update-user-attributes \
   --user-pool-id "$USER_POOL_ID" \
   --username "$VET_HAMBURG_EMAIL" \
   --user-attributes Name="custom:clinicId",Value="$CLINIC_HAMBURG_ID" \
   --region "$REGION" 2>/dev/null
-echo "  ✓ Dr. Petersen → Tierärzte Elbchaussee (Hamburg)"
+echo "Dr. Petersen → Tierärzte Elbchaussee (Hamburg)"
 
 aws cognito-idp admin-update-user-attributes \
   --user-pool-id "$USER_POOL_ID" \
   --username "$VET_KOELN_EMAIL" \
   --user-attributes Name="custom:clinicId",Value="$CLINIC_KOELN_ID" \
   --region "$REGION" 2>/dev/null
-echo "  ✓ Dr. Klein → Kleintierpraxis am Dom (Köln)"
+echo "Dr. Klein → Kleintierpraxis am Dom (Köln)"
 
 sleep 2
 
@@ -425,10 +425,10 @@ sleep 2
 VET_BERLIN_TOKEN=$(api_post "/auth/signin" "{\"email\":\"$VET_BERLIN_EMAIL\",\"password\":\"$VET_PASSWORD\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
 VET_HAMBURG_TOKEN=$(api_post "/auth/signin" "{\"email\":\"$VET_HAMBURG_EMAIL\",\"password\":\"$VET_PASSWORD\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
 VET_KOELN_TOKEN=$(api_post "/auth/signin" "{\"email\":\"$VET_KOELN_EMAIL\",\"password\":\"$VET_PASSWORD\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('idToken',''))" 2>/dev/null)
-echo "  ✓ All vet accounts signed in"
+echo "All vet accounts signed in"
 
 echo ""
-echo "🐾 Creating pets for additional owners..."
+echo "Creating pets for additional owners..."
 
 # Lotte (Berlin) — owned by Thomas Schmidt
 create_pet_with_token() {
@@ -440,7 +440,7 @@ create_pet_with_token() {
   local petId=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('petId',''))" 2>/dev/null)
   local code=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('claimingCode',''))" 2>/dev/null)
   if [ -z "$petId" ]; then
-    echo "    ⚠ Failed to create $name. Response: $(echo $result | head -c 200)" >&2
+    echo "Failed to create $name. Response: $(echo $result | head -c 200)" >&2
   fi
   echo "$petId:$code"
 }
@@ -453,32 +453,32 @@ claim_pet_as() {
   api_post "/pets/claim" "{\"claimingCode\":\"$code\",\"ownerName\":\"$ownerName\",\"ownerEmail\":\"$ownerEmail\",\"ownerPhone\":\"$ownerPhone\"}" "$token" > /dev/null
 }
 claim_pet_as "$LOTTE_B_CODE" "Thomas Schmidt" "$OWNER2_EMAIL" "+49-170-9876543" "$OWNER2_TOKEN"
-echo "  ✓ Lotte (Dachshund) — owned by Thomas Schmidt (Berlin)"
+echo "Lotte (Dachshund) — owned by Thomas Schmidt (Berlin)"
 
 # Susi (Hamburg) — owned by Lisa Wagner
 IFS=: read SUSI_H_ID SUSI_H_CODE <<< "$(create_pet_with_token "Susi" "Dog" "English Setter/Labrador Mix" 4 "$VET_HAMBURG_TOKEN")"
 claim_pet_as "$SUSI_H_CODE" "Lisa Wagner" "$OWNER3_EMAIL" "+49-151-2345678" "$OWNER3_TOKEN"
-echo "  ✓ Susi (English Setter/Labrador Mix) — owned by Lisa Wagner (Hamburg)"
+echo "Susi (English Setter/Labrador Mix) — owned by Lisa Wagner (Hamburg)"
 
 # Timmi (Köln) — owned by Markus Becker
 IFS=: read TIMMI_K_ID TIMMI_K_CODE <<< "$(create_pet_with_token "Timmi" "Cat" "Domestic Shorthair" 6 "$VET_KOELN_TOKEN")"
 claim_pet_as "$TIMMI_K_CODE" "Markus Becker" "$OWNER4_EMAIL" "+49-160-4567890" "$OWNER4_TOKEN"
-echo "  ✓ Timmi (Domestic Shorthair) — owned by Markus Becker (Köln)"
+echo "Timmi (Domestic Shorthair) — owned by Markus Becker (Köln)"
 
 # Upload photos for additional city pets
 echo ""
-echo "📷 Uploading photos for additional city pets..."
+echo "Uploading photos for additional city pets..."
 upload_image "$LOTTE_B_ID" "Lotte.jpg" '"dachshund","brown","small","long-body"' "$OWNER2_TOKEN"
-echo "  ✓ Lotte (Berlin)"
+echo "Lotte (Berlin)"
 upload_image "$SUSI_H_ID" "Susi.jpg" '"setter-mix","brown-white","medium"' "$OWNER3_TOKEN"
-echo "  ✓ Susi (Hamburg)"
+echo "Susi (Hamburg)"
 upload_image "$TIMMI_K_ID" "Timmi.jpg" '"shorthair","orange-tabby","fluffy"' "$OWNER4_TOKEN"
-echo "  ✓ Timmi (Köln)"
+echo "Timmi (Köln)"
 
 # ── 3c. Add medical records (vaccines & surgeries) ─────────────────────────
 
 echo ""
-echo "💉 Adding medical records..."
+echo "Adding medical records..."
 
 add_vaccine() {
   local petId=$1 vaccineName=$2 adminDate=$3 nextDue=$4 vetName=$5 token=$6
@@ -495,76 +495,76 @@ add_vaccine "$BALU_ID" "Rabies" "2024-06-15" "2025-06-15" "Dr. Sarah Weber" "$VE
 add_vaccine "$BALU_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-06-15" "2025-06-15" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$BALU_ID" "Leptospirosis" "2024-06-15" "2025-06-15" "Dr. Sarah Weber" "$VET_TOKEN"
 add_surgery "$BALU_ID" "Neutering" "2023-03-10" "Routine procedure, no complications" "Full recovery in 10 days, bland diet for 3 days" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Balu: Rabies, DHPP, Leptospirosis + Neutering"
+echo "Balu: Rabies, DHPP, Leptospirosis + Neutering"
 
 # Luna (Siamese, 2y) — München
 add_vaccine "$LUNA_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-08-01" "2025-08-01" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$LUNA_ID" "Rabies" "2024-08-01" "2027-08-01" "Dr. Sarah Weber" "$VET_TOKEN"
 add_surgery "$LUNA_ID" "Spay" "2023-11-20" "Routine procedure, laparoscopic" "Recovery in 7 days, wear cone collar" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Luna: FVRCP, Rabies + Spay"
+echo "Luna: FVRCP, Rabies + Spay"
 
 # Rex (German Shepherd, 5y) — München
 add_vaccine "$REX_ID" "Rabies" "2024-04-10" "2027-04-10" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$REX_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-04-10" "2025-04-10" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$REX_ID" "Bordetella (Kennel Cough)" "2024-04-10" "2025-04-10" "Dr. Sarah Weber" "$VET_TOKEN"
 add_surgery "$REX_ID" "Cruciate Ligament Repair (TPLO)" "2023-09-15" "Left anterior cruciate ligament tear, TPLO method" "Strict rest 8 weeks, physiotherapy 3x/week" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Rex: Rabies, DHPP, Bordetella + Cruciate Ligament Repair"
+echo "Rex: Rabies, DHPP, Bordetella + Cruciate Ligament Repair"
 
 # Minka (Domestic Shorthair, 4y) — München (Pending Claim)
 add_vaccine "$MINKA_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-05-20" "2025-05-20" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$MINKA_ID" "FeLV (Feline Leukemia Virus)" "2024-05-20" "2025-05-20" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Minka: FVRCP, FeLV"
+echo "Minka: FVRCP, FeLV"
 
 # Olive (Ridgeback, 1y) — München (Pending Claim)
 add_vaccine "$OLIVE_ID" "Rabies" "2025-02-10" "2028-02-10" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$OLIVE_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2025-02-10" "2026-02-10" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$OLIVE_ID" "Leptospirosis" "2025-02-10" "2026-02-10" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Olive: Rabies, DHPP, Leptospirosis (Puppy primary vaccination)"
+echo "Olive: Rabies, DHPP, Leptospirosis (Puppy primary vaccination)"
 
 # Nala (Persian, 3y) — München
 add_vaccine "$NALA_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-10-01" "2025-10-01" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$NALA_ID" "Rabies" "2024-10-01" "2027-10-01" "Dr. Sarah Weber" "$VET_TOKEN"
 add_surgery "$NALA_ID" "Spay" "2023-06-15" "Routine procedure, uncomplicated" "Recovery in 10 days, cone collar for 7 days" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Nala: FVRCP, Rabies + Spay"
+echo "Nala: FVRCP, Rabies + Spay"
 
 # Askari (Australian Shepherd, 2y) — München (Pending Claim)
 add_vaccine "$ASKARI_ID" "Rabies" "2025-01-15" "2028-01-15" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$ASKARI_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2025-01-15" "2026-01-15" "Dr. Sarah Weber" "$VET_TOKEN"
 add_vaccine "$ASKARI_ID" "Leptospirosis" "2025-01-15" "2026-01-15" "Dr. Sarah Weber" "$VET_TOKEN"
 add_surgery "$ASKARI_ID" "Neutering" "2024-08-20" "Routine neutering, no complications" "Recovery in 10 days, restricted activity" "Dr. Sarah Weber" "$VET_TOKEN"
-echo "  ✓ Askari: Rabies, DHPP, Leptospirosis + Neutering"
+echo "Askari: Rabies, DHPP, Leptospirosis + Neutering"
 
 # Lotte (Dachshund, 9y) — Berlin
 add_vaccine "$LOTTE_B_ID" "Rabies" "2024-09-01" "2027-09-01" "Dr. Michael Huber" "$VET_BERLIN_TOKEN"
 add_vaccine "$LOTTE_B_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-09-01" "2025-09-01" "Dr. Michael Huber" "$VET_BERLIN_TOKEN"
 add_surgery "$LOTTE_B_ID" "Intervertebral Disc Surgery" "2024-04-20" "Herniated disc L2-L3, minimally invasive (IVDD)" "Strict rest 6 weeks, physiotherapy recommended" "Dr. Michael Huber" "$VET_BERLIN_TOKEN"
-echo "  ✓ Lotte (Berlin): Rabies, DHPP + Intervertebral Disc Surgery"
+echo "Lotte (Berlin): Rabies, DHPP + Intervertebral Disc Surgery"
 
 # Susi (English Setter/Labrador Mix, 4y) — Hamburg
 add_vaccine "$SUSI_H_ID" "Rabies" "2024-01-20" "2027-01-20" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
 add_vaccine "$SUSI_H_ID" "DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)" "2024-01-20" "2025-01-20" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
 add_vaccine "$SUSI_H_ID" "Leptospirosis" "2024-01-20" "2025-01-20" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
 add_surgery "$SUSI_H_ID" "Dental Cleaning" "2024-11-05" "Annual dental cleaning, two teeth extracted" "Soft food 5 days, antibiotics 7 days" "Dr. Jan Petersen" "$VET_HAMBURG_TOKEN"
-echo "  ✓ Susi (Hamburg): Rabies, DHPP, Leptospirosis + Dental Cleaning"
+echo "Susi (Hamburg): Rabies, DHPP, Leptospirosis + Dental Cleaning"
 
 # Timmi (Domestic Shorthair, 6y) — Köln
 add_vaccine "$TIMMI_K_ID" "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)" "2024-03-10" "2025-03-10" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
 add_vaccine "$TIMMI_K_ID" "FeLV (Feline Leukemia Virus)" "2024-03-10" "2025-03-10" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
 add_vaccine "$TIMMI_K_ID" "Rabies" "2024-03-10" "2027-03-10" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
 add_surgery "$TIMMI_K_ID" "Neutering" "2020-07-15" "Routine neutering at age 1 year" "Uncomplicated recovery in 7 days" "Dr. Claudia Klein" "$VET_KOELN_TOKEN"
-echo "  ✓ Timmi (Köln): FVRCP, FeLV, Rabies + Neutering"
+echo "Timmi (Köln): FVRCP, FeLV, Rabies + Neutering"
 
 # ── 4. Report some pets as missing ─────────────────────────────────────────
 
 echo ""
-echo "🚨 Reporting missing pets..."
+echo "Reporting missing pets..."
 
 report_missing() {
   local petId=$1
   local petName=$2
   local token=$3
   if [ -z "$petId" ]; then
-    echo "    ⚠ No pet ID for $petName, skipping report missing" >&2
+    echo "No pet ID for $petName, skipping report missing" >&2
     return
   fi
   local result=$(api_post "/pets/$petId/missing" '{
@@ -574,27 +574,27 @@ report_missing() {
   }' "$token")
   local flyerUrl=$(echo "$result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('flyerUrl',''))" 2>/dev/null)
   if [ -z "$flyerUrl" ]; then
-    echo "    ⚠ Report missing failed for $petName. Response: $(echo $result | head -c 200)" >&2
+    echo "Report missing failed for $petName. Response: $(echo $result | head -c 200)" >&2
   fi
 }
 
 report_missing "$LUNA_ID" "Luna" "$OWNER_TOKEN"
-echo "  ✓ Luna reported missing (München)"
+echo "Luna reported missing (München)"
 report_missing "$REX_ID" "Rex" "$OWNER_TOKEN"
-echo "  ✓ Rex reported missing (München)"
+echo "Rex reported missing (München)"
 report_missing "$NALA_ID" "Nala" "$OWNER_TOKEN"
-echo "  ✓ Nala reported missing (München)"
+echo "Nala reported missing (München)"
 report_missing "$LOTTE_B_ID" "Lotte" "$OWNER2_TOKEN"
-echo "  ✓ Lotte reported missing (Berlin)"
+echo "Lotte reported missing (Berlin)"
 report_missing "$SUSI_H_ID" "Susi" "$OWNER3_TOKEN"
-echo "  ✓ Susi reported missing (Hamburg)"
+echo "Susi reported missing (Hamburg)"
 report_missing "$TIMMI_K_ID" "Timmi" "$OWNER4_TOKEN"
-echo "  ✓ Timmi reported missing (Köln)"
+echo "Timmi reported missing (Köln)"
 
 # ── 5. Update owner profiles ───────────────────────────────────────────────
 
 echo ""
-echo "👤 Updating owner profiles..."
+echo "Updating owner profiles..."
 curl -s -X PUT "$API_URL/account/profile" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OWNER_TOKEN" \
@@ -606,7 +606,7 @@ curl -s -X PUT "$API_URL/account/profile" \
     "ownerZipCode": "80802",
     "ownerCity": "München"
   }' > /dev/null
-echo "  ✓ Anna Müller (München)"
+echo "Anna Müller (München)"
 
 curl -s -X PUT "$API_URL/account/profile" \
   -H "Content-Type: application/json" \
@@ -619,7 +619,7 @@ curl -s -X PUT "$API_URL/account/profile" \
     "ownerZipCode": "10435",
     "ownerCity": "Berlin"
   }' > /dev/null
-echo "  ✓ Thomas Schmidt (Berlin)"
+echo "Thomas Schmidt (Berlin)"
 
 curl -s -X PUT "$API_URL/account/profile" \
   -H "Content-Type: application/json" \
@@ -632,7 +632,7 @@ curl -s -X PUT "$API_URL/account/profile" \
     "ownerZipCode": "20259",
     "ownerCity": "Hamburg"
   }' > /dev/null
-echo "  ✓ Lisa Wagner (Hamburg)"
+echo "Lisa Wagner (Hamburg)"
 
 curl -s -X PUT "$API_URL/account/profile" \
   -H "Content-Type: application/json" \
@@ -645,13 +645,13 @@ curl -s -X PUT "$API_URL/account/profile" \
     "ownerZipCode": "50674",
     "ownerCity": "Köln"
   }' > /dev/null
-echo "  ✓ Markus Becker (Köln)"
+echo "Markus Becker (Köln)"
 
 # ── Summary ────────────────────────────────────────────────────────────────
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
-echo "✅ Cloud seed complete!"
+echo "Cloud seed complete!"
 echo ""
 echo "Login credentials:"
 echo "  Vet:              $VET_EMAIL / $VET_PASSWORD"

@@ -11,7 +11,7 @@ set -e
 REGION="eu-central-1"
 STACK_NAME="paw-print-profile"
 
-echo "🧹 Cleaning up cloud test data..."
+echo "Cleaning up cloud test data..."
 echo ""
 
 # Get resource IDs from CloudFormation outputs
@@ -28,7 +28,7 @@ TABLE_NAME=$(aws cloudformation describe-stacks \
   --output text)
 
 if [ -z "$USER_POOL_ID" ] || [ -z "$TABLE_NAME" ]; then
-  echo "❌ Could not get stack outputs. Is the backend deployed?"
+  echo "Could not get stack outputs. Is the backend deployed?"
   exit 1
 fi
 
@@ -38,7 +38,7 @@ echo ""
 
 # ── 1. Delete Cognito users ────────────────────────────────────────────────
 
-echo "🔑 Deleting Cognito users..."
+echo "Deleting Cognito users..."
 
 # List all users in the pool
 USERS=$(aws cognito-idp list-users \
@@ -62,7 +62,7 @@ fi
 # ── 2. Clear DynamoDB table ────────────────────────────────────────────────
 
 echo ""
-echo "🗄️  Clearing DynamoDB table: $TABLE_NAME..."
+echo "Clearing DynamoDB table: $TABLE_NAME..."
 
 # Scan all items and delete them in batches
 ITEMS=$(aws dynamodb scan \
@@ -121,4 +121,4 @@ else
 fi
 
 echo ""
-echo "✅ Cleanup complete! Run ./scripts/seed-cloud.sh to re-seed."
+echo "Cleanup complete! Run ./scripts/seed-cloud.sh to re-seed."
