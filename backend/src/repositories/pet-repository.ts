@@ -489,19 +489,36 @@ export class PetRepository {
   async search(criteria: SearchCriteria): Promise<Pet[]> {
     if (criteria.species) {
       // Use GSI2 for species-based search
+      const expressionAttributeValues: Record<string, any> = {
+        ':species': `SPECIES#${criteria.species}`,
+      }
+
+      // Build FilterExpression for tags (DynamoDB-side filtering)
+      let filterExpression: string | undefined
+      const expressionAttributeNames: Record<string, string> = {}
+
+      if (criteria.tags && criteria.tags.length > 0) {
+        const tagConditions = criteria.tags.map((tag, i) => {
+          expressionAttributeValues[`:tag${i}`] = tag
+          return `contains(#tags, :tag${i})`
+        })
+        filterExpression = tagConditions.join(' AND ')
+        expressionAttributeNames['#tags'] = 'tags'
+      }
+
       const command = new QueryCommand({
         TableName: this.tableName,
         IndexName: 'GSI2',
         KeyConditionExpression: 'GSI2PK = :species',
-        ExpressionAttributeValues: {
-          ':species': `SPECIES#${criteria.species}`,
-        },
+        ExpressionAttributeValues: expressionAttributeValues,
+        ...(filterExpression && { FilterExpression: filterExpression }),
+        ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
       })
 
       const response = await this.docClient.send(command)
       let pets = response.Items as Pet[] || []
 
-      // Apply additional filters
+      // Apply additional filters (application-side for non-indexed attributes)
       if (criteria.breed) {
         pets = pets.filter(pet => pet.breed && pet.breed.toLowerCase().includes(criteria.breed!.toLowerCase()))
       }
@@ -517,12 +534,26 @@ export class PetRepository {
       return pets
     } else {
       // Fallback to scan if no species specified
+      const expressionAttributeValues: Record<string, any> = {
+        ':sk': 'METADATA',
+      }
+      const expressionAttributeNames: Record<string, string> = {}
+      const filterConditions: string[] = ['SK = :sk']
+
+      // Add tag filtering (DynamoDB-side)
+      if (criteria.tags && criteria.tags.length > 0) {
+        criteria.tags.forEach((tag, i) => {
+          expressionAttributeValues[`:tag${i}`] = tag
+          filterConditions.push(`contains(#tags, :tag${i})`)
+        })
+        expressionAttributeNames['#tags'] = 'tags'
+      }
+
       const command = new ScanCommand({
         TableName: this.tableName,
-        FilterExpression: 'SK = :sk',
-        ExpressionAttributeValues: {
-          ':sk': 'METADATA',
-        },
+        FilterExpression: filterConditions.join(' AND '),
+        ExpressionAttributeValues: expressionAttributeValues,
+        ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
       })
 
       const response = await this.docClient.send(command)

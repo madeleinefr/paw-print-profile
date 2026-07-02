@@ -59,6 +59,7 @@ export interface Pet extends DynamoDBEntity {
   isMissing: boolean
   lastSeenLocation?: string     // Stored when pet is reported missing
   flyerUrl?: string             // S3 URL of the generated flyer PDF
+  tags?: string[]               // Denormalized from image tags for search filtering
   customFields?: Record<string, any>
   
   // GSI2 attributes for species/breed search

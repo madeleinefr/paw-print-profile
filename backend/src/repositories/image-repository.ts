@@ -18,6 +18,7 @@ import {
   GetCommand,
   QueryCommand,
   DeleteCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb'
 import { v4 as uuidv4 } from 'uuid'
 import { PetImage, UploadImageInput } from '../models/entities'
@@ -97,6 +98,21 @@ export class ImageRepository {
         Item: petImage,
       })
     )
+
+    // Denormalize: merge image tags onto the pet METADATA record for search filtering
+    if (input.tags.length > 0) {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { PK: `PET#${input.petId}`, SK: 'METADATA' },
+          UpdateExpression: 'SET tags = list_append(if_not_exists(tags, :empty), :newTags)',
+          ExpressionAttributeValues: {
+            ':empty': [] as string[],
+            ':newTags': input.tags,
+          },
+        })
+      )
+    }
 
     return petImage
   }
