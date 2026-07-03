@@ -153,6 +153,7 @@ Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, i
 
 ```bash
 cd backend
+cp .env.example .env   # Required when running tests outside Docker
 npm install
 npm test                  # All tests
 npm run test:unit         # Unit tests only (~218 tests)
@@ -293,4 +294,4 @@ All architectural decisions, requirements, and system designs are in the `docs/`
 - [Architecture & Diagrams](./docs/03_architecture.md)
 - [Correctness Properties](./docs/04_correctness_properties.md)
 - [Frameworks & Tools](./docs/05_frameworks_and_tools.md)
-- [Test Case Specifications](./docs/07_test_case_specifications.md)
+- [Test Case Specifications](./docs/06_test_case_specifications.md)
