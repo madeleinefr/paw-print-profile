@@ -222,8 +222,7 @@ PawPrint/
 ### 1. Deploy the backend
 
 ```bash
-sam build
-sam deploy --guided
+./scripts/build-and-deploy.sh
 ```
 
 On first deploy, SAM will prompt for:
@@ -231,11 +230,7 @@ On first deploy, SAM will prompt for:
 - Region: `eu-central-1` (or your preferred region)
 - Confirm changes and allow IAM role creation
 
-Subsequent deploys:
-
-```bash
-sam build && sam deploy
-```
+> **Note:** Use `build-and-deploy.sh` instead of `sam build && sam deploy` directly. The script handles post-build steps (installing pdfkit font files into the Lambda package) that esbuild cannot bundle.
 
 ### 2. Deploy the frontend
 
