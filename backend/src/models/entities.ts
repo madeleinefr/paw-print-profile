@@ -58,7 +58,8 @@ export interface Pet extends DynamoDBEntity {
   updatedAt: string
   isMissing: boolean
   lastSeenLocation?: string     // Stored when pet is reported missing
-  flyerUrl?: string             // S3 URL of the generated flyer PDF
+  flyerUrl?: string             // S3 signed URL (may be expired — use flyerS3Key for fresh URL)
+  flyerS3Key?: string           // S3 key for the generated flyer PDF
   tags?: string[]               // Denormalized from image tags for search filtering
   customFields?: Record<string, any>
   

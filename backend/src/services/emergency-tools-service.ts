@@ -135,12 +135,13 @@ export class EmergencyToolsService {
     const images = await this.imageRepo.findByPet(petId)
 
     // Generate the missing pet flyer PDF
-    const flyerUrl = await this.generateMissingPetFlyer(pet, clinic, images, input)
+    const flyerResult = await this.generateMissingPetFlyer(pet, clinic, images, input)
 
-    // Persist flyer URL and last seen location on the pet record for later retrieval
+    // Persist flyer S3 key and last seen location on the pet record for later retrieval
     await this.petRepo.setMissingStatus(petId, true, {
       lastSeenLocation: input.lastSeenLocation,
-      flyerUrl,
+      flyerUrl: flyerResult.flyerUrl,
+      flyerS3Key: flyerResult.s3Key,
     })
 
     // Notify nearby clinics
@@ -158,7 +159,7 @@ export class EmergencyToolsService {
     return {
       petId,
       isMissing: true,
-      flyerUrl,
+      flyerUrl: flyerResult.flyerUrl,
       notifiedClinics,
       searchRadiusKm: input.searchRadiusKm,
       lastSeenLocation: input.lastSeenLocation,
@@ -173,7 +174,7 @@ export class EmergencyToolsService {
    * @param clinic - The pet's clinic (for contact info), or null
    * @param images - Pet images to include on the flyer
    * @param input - Report input with location, notes, and contact method
-   * @returns The S3 URL of the generated flyer PDF
+   * @returns The flyer URL and S3 key
    *
    * Requirements: [FR-09], [FR-15], [NFR-USA-01]
    */
@@ -182,14 +183,14 @@ export class EmergencyToolsService {
     clinic: Clinic | null,
     images: PetImage[],
     input: ReportMissingInput
-  ): Promise<string> {
+  ): Promise<{ flyerUrl: string; s3Key: string }> {
     const flyerInput: FlyerGenerationInput = {
       lastSeenLocation: input.lastSeenLocation,
       additionalNotes: input.additionalNotes,
       contactMethod: input.contactMethod,
     }
     const result = await this.flyerService.generateFlyer(pet, clinic, images, flyerInput)
-    return result.flyerUrl
+    return { flyerUrl: result.flyerUrl, s3Key: result.s3Key }
   }
 
   /**
