@@ -53,7 +53,7 @@ if [ -n "$USERS" ]; then
       --user-pool-id "$USER_POOL_ID" \
       --username "$username" \
       --region "$REGION"
-    echo "  ✓ Deleted user: $username"
+    echo " Deleted user: $username"
   done
 else
   echo "  No users to delete"
@@ -114,7 +114,7 @@ if batch:
     ], capture_output=True)
     deleted += len(batch)
 
-print(f'  ✓ Deleted {deleted} items')
+print('Deleted {deleted} items')
 "
 else
   echo "  Table is already empty"

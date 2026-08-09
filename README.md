@@ -140,7 +140,7 @@ docker compose exec backend npx tsx src/infrastructure/seed-data.ts --force
 | Database | Amazon DynamoDB (single-table, 6 GSIs) |
 | Storage | Amazon S3 (pet images & PDF flyers) |
 | Auth | AWS Cognito (local: DynamoDB-backed LocalAuthService) |
-| Notifications | Amazon SNS / SES |
+| Notifications | Amazon SNS |
 | Frontend | React 18, Vite, React Router v6 |
 | Testing | Vitest, fast-check (property-based testing) |
 | Local Dev | Docker Compose, LocalStack 3.8 |
