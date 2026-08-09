@@ -3,7 +3,7 @@
  * 
  * Provides public search capabilities for finding lost pets using
  * species, breed, age range, tags, and location filters.
- * Requirements: [FR-11], [FR-12], [FR-12]
+ * Requirements: [FR-11], [FR-12], [FR-15]
  */
 
 import { PetRepository } from '../repositories/pet-repository'
