@@ -76,6 +76,7 @@ LocalStack free tier doesn't support Cognito. `LocalAuthService` provides the sa
 Requires LocalStack on `localhost:4566` (Docker Compose provides this).
 
 ```bash
+cp .env.example .env     # Required when running tests outside Docker
 npm test                  # All tests (~464)
 npm run test:unit         # Unit tests only (~218)
 npm run test:property     # Property-based tests (~167, against LocalStack)

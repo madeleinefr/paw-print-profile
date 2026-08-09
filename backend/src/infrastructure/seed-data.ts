@@ -118,7 +118,7 @@ async function seed() {
   }
 
   // ── 0. Create test user accounts ────────────────────────────────────────
-  console.log('\n🔑 Creating test user accounts...')
+  console.log('\n Creating test user accounts...')
 
   const VET_EMAIL = 'dr.weber@tierarzt-pfoetchen.de'
   const VET_PASSWORD = 'Test1234!'
@@ -135,7 +135,7 @@ async function seed() {
       userType: 'vet',
     })
     vetUserId = vetUser.userId
-    console.log(`  ✓ Vet account: ${VET_EMAIL} / ${VET_PASSWORD} (ID: ${vetUserId})`)
+    console.log(`Vet account: ${VET_EMAIL} / ${VET_PASSWORD} (ID: ${vetUserId})`)
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
       console.log(`  ⚠ Vet account already exists: ${VET_EMAIL}`)
@@ -162,10 +162,10 @@ async function seed() {
       ownerZipCode: '80802',
       ownerCity: 'München',
     })
-    console.log(`  ✓ Owner account: ${OWNER_EMAIL} / ${OWNER_PASSWORD} (ID: ${ownerUserId})`)
+    console.log(`Owner account: ${OWNER_EMAIL} / ${OWNER_PASSWORD} (ID: ${ownerUserId})`)
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
-      console.log(`  ⚠ Owner account already exists: ${OWNER_EMAIL}`)
+      console.log(`Owner account already exists: ${OWNER_EMAIL}`)
       const existing = await authService.getUserByEmail(OWNER_EMAIL)
       ownerUserId = existing!.userId
     } else {
@@ -187,11 +187,11 @@ async function seed() {
     latitude: 48.1351,
     longitude: 11.5820,
   })
-  console.log(`  ✓ Clinic: ${clinic.name} (ID: ${clinic.clinicId})`)
+  console.log(`Clinic: ${clinic.name} (ID: ${clinic.clinicId})`)
 
   // Associate clinic with vet account
   await authService.associateClinic(vetUserId, clinic.clinicId)
-  console.log(`  ✓ Vet account associated with clinic`)
+  console.log(`Vet account associated with clinic`)
 
   const VET_ID = vetUserId
   const OWNER_ID = ownerUserId
@@ -222,7 +222,7 @@ async function seed() {
     ownerCity: 'München',
   })
   await uploadPetImage(imageRepo, buddy.petId, 'Balu', seedImagesDir)
-  console.log(`  ✓ Balu (Golden Retriever, 3y) — Active, owned by ${OWNER_ID}`)
+  console.log(`Balu (Golden Retriever, 3y) — Active, owned by ${OWNER_ID}`)
 
   // Pet 2: Claimed + Missing (owned by owner-1) — shows up in public search
   const luna = await petRepo.createMedicalProfile({
@@ -251,7 +251,7 @@ async function seed() {
     lastSeenLocation: 'Englischer Garten, near Monopteros, München',
     contactMethod: 'clinic',
   })
-  console.log(`  ✓ Luna (Siamese, 2y) — MISSING, owned by ${OWNER_ID}`)
+  console.log(`Luna (Siamese, 2y) — MISSING, owned by ${OWNER_ID}`)
 
   // Pet 3: Claimed + Missing (owned by owner-1)
   const max = await petRepo.createMedicalProfile({
@@ -280,7 +280,7 @@ async function seed() {
     lastSeenLocation: 'Olympiapark, near BMW Welt, München',
     contactMethod: 'clinic',
   })
-  console.log(`  ✓ Rex (German Shepherd, 5y) — MISSING, owned by ${OWNER_ID}`)
+  console.log(`Rex (German Shepherd, 5y) — MISSING, owned by ${OWNER_ID}`)
 
   // Pet 4: Pending Claim (not yet claimed — vet can see claiming code)
   const whiskers = await petRepo.createMedicalProfile({
@@ -292,7 +292,7 @@ async function seed() {
     verifyingVetId: VET_ID,
   })
   await uploadPetImage(imageRepo, whiskers.petId, 'Minka', seedImagesDir)
-  console.log(`  ✓ Minka (Domestic Shorthair, 4y) — Pending Claim (code: ${whiskers.claimingCode})`)
+  console.log(`Minka (Domestic Shorthair, 4y) — Pending Claim (code: ${whiskers.claimingCode})`)
 
   // Pet 5: Pending Claim
   const charlie = await petRepo.createMedicalProfile({
@@ -304,7 +304,7 @@ async function seed() {
     verifyingVetId: VET_ID,
   })
   await uploadPetImage(imageRepo, charlie.petId, 'Olive', seedImagesDir)
-  console.log(`  ✓ Olive (Ridgeback, 1y) — Pending Claim (code: ${charlie.claimingCode})`)
+  console.log(`Olive (Ridgeback, 1y) — Pending Claim (code: ${charlie.claimingCode})`)
 
   // Pet 8: Claimed + Missing (owned by owner-1) — another missing Cat
   const nala = await petRepo.createMedicalProfile({
@@ -333,7 +333,7 @@ async function seed() {
     lastSeenLocation: 'Maxvorstadt, near Pinakothek der Moderne, München',
     contactMethod: 'clinic',
   })
-  console.log(`  ✓ Nala (Persian, 3y) — MISSING, owned by ${OWNER_ID}`)
+  console.log(`Nala (Persian, 3y) — MISSING, owned by ${OWNER_ID}`)
 
   // Pet 9: Pending Claim — Dog
   const rocky = await petRepo.createMedicalProfile({
@@ -345,10 +345,10 @@ async function seed() {
     verifyingVetId: VET_ID,
   })
   await uploadPetImage(imageRepo, rocky.petId, 'Askari', seedImagesDir)
-  console.log(`  ✓ Askari (Australian Shepherd, 2y) — Pending Claim (code: ${rocky.claimingCode})`)
+  console.log(`Askari (Australian Shepherd, 2y) — Pending Claim (code: ${rocky.claimingCode})`)
 
   // ── 2b. Additional owners, clinics, and pets in other cities ─────────────
-  console.log('\n🏥 Creating additional clinics in other cities...')
+  console.log('\n Creating additional clinics in other cities...')
 
   // Berlin clinic
   const clinicBerlin = await clinicRepo.create({
@@ -363,7 +363,7 @@ async function seed() {
     latitude: 52.5480,
     longitude: 13.4130,
   })
-  console.log(`  ✓ Clinic: ${clinicBerlin.name} (Berlin)`)
+  console.log(`Clinic: ${clinicBerlin.name} (Berlin)`)
 
   // Hamburg clinic
   const clinicHamburg = await clinicRepo.create({
@@ -378,7 +378,7 @@ async function seed() {
     latitude: 53.5460,
     longitude: 9.9210,
   })
-  console.log(`  ✓ Clinic: ${clinicHamburg.name} (Hamburg)`)
+  console.log(`Clinic: ${clinicHamburg.name} (Hamburg)`)
 
   // Köln clinic
   const clinicKoeln = await clinicRepo.create({
@@ -396,7 +396,7 @@ async function seed() {
   console.log(`  ✓ Clinic: ${clinicKoeln.name} (Köln)`)
 
   // Create 3 new owner accounts
-  console.log('\n🔑 Creating additional owner accounts...')
+  console.log('\n Creating additional owner accounts...')
 
   const OWNER2_EMAIL = 'thomas.schmidt@beispiel.de'
   const OWNER2_PASSWORD = 'Test1234!'
@@ -416,7 +416,7 @@ async function seed() {
       ownerZipCode: '10435',
       ownerCity: 'Berlin',
     })
-    console.log(`  ✓ Owner: ${OWNER2_EMAIL} / ${OWNER2_PASSWORD} (Berlin)`)
+    console.log(`Owner: ${OWNER2_EMAIL} / ${OWNER2_PASSWORD} (Berlin)`)
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
       console.log(`  ⚠ Owner account already exists: ${OWNER2_EMAIL}`)
@@ -445,7 +445,7 @@ async function seed() {
       ownerZipCode: '20259',
       ownerCity: 'Hamburg',
     })
-    console.log(`  ✓ Owner: ${OWNER3_EMAIL} / ${OWNER3_PASSWORD} (Hamburg)`)
+    console.log(`Owner: ${OWNER3_EMAIL} / ${OWNER3_PASSWORD} (Hamburg)`)
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
       console.log(`  ⚠ Owner account already exists: ${OWNER3_EMAIL}`)
@@ -474,10 +474,10 @@ async function seed() {
       ownerZipCode: '50674',
       ownerCity: 'Köln',
     })
-    console.log(`  ✓ Owner: ${OWNER4_EMAIL} / ${OWNER4_PASSWORD} (Köln)`)
+    console.log(`Owner: ${OWNER4_EMAIL} / ${OWNER4_PASSWORD} (Köln)`)
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
-      console.log(`  ⚠ Owner account already exists: ${OWNER4_EMAIL}`)
+      console.log(`Owner account already exists: ${OWNER4_EMAIL}`)
       const existing = await authService.getUserByEmail(OWNER4_EMAIL)
       owner4UserId = existing!.userId
     } else {
@@ -486,7 +486,7 @@ async function seed() {
   }
 
   // Create pets for new owners
-  console.log('\n🐾 Creating pets for additional owners...')
+  console.log('\nCreating pets for additional owners...')
 
   // Lotte → owned by Thomas Schmidt in Berlin
   const lotteBerlin = await petRepo.createMedicalProfile({
@@ -515,7 +515,7 @@ async function seed() {
     lastSeenLocation: 'Prenzlauer Berg, Helmholtzplatz, Berlin',
     contactMethod: 'clinic',
   })
-  console.log(`  ✓ Lotte (Dachshund, 9y) — MISSING, owned by Thomas Schmidt (Berlin)`)
+  console.log(`Lotte (Dachshund, 9y) — MISSING, owned by Thomas Schmidt (Berlin)`)
 
   // Susi → owned by Lisa Wagner in Hamburg
   const susiHamburg = await petRepo.createMedicalProfile({
@@ -544,7 +544,7 @@ async function seed() {
     lastSeenLocation: 'Eppendorfer Park, near the pond, Hamburg',
     contactMethod: 'clinic',
   })
-  console.log(`  ✓ Susi (English Setter/Labrador Mix, 4y) — MISSING, owned by Lisa Wagner (Hamburg)`)
+  console.log(`Susi (English Setter/Labrador Mix, 4y) — MISSING, owned by Lisa Wagner (Hamburg)`)
 
   // Timmi → owned by Markus Becker in Köln
   const timmiKoeln = await petRepo.createMedicalProfile({
@@ -573,10 +573,10 @@ async function seed() {
     lastSeenLocation: 'Stadtgarten, near Mediapark, Köln',
     contactMethod: 'clinic',
   })
-  console.log(`  ✓ Timmi (Domestic Shorthair, 6y) — MISSING, owned by Markus Becker (Köln)`)
+  console.log(`Timmi (Domestic Shorthair, 6y) — MISSING, owned by Markus Becker (Köln)`)
 
   // ── 3. Add medical records ───────────────────────────────────────────────
-  console.log('\n💉 Adding medical records...')
+  console.log('\n Adding medical records...')
 
   // ─ Balu (Golden Retriever, 3y) ─
   await petRepo.addVaccine(buddy.petId, {
@@ -604,7 +604,7 @@ async function seed() {
     recoveryInfo: 'Full recovery in 10 days, bland diet for 3 days',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Balu: Rabies, DHPP, Leptospirosis + Neutering')
+  console.log('Balu: Rabies, DHPP, Leptospirosis + Neutering')
 
   // ─ Luna (Siamese, 2y) ─
   await petRepo.addVaccine(luna.petId, {
@@ -626,7 +626,7 @@ async function seed() {
     recoveryInfo: 'Recovery in 7 days, wear cone collar',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Luna: FVRCP, Rabies + Spay')
+  console.log('Luna: FVRCP, Rabies + Spay')
 
   // ─ Rex (German Shepherd, 5y) ─
   await petRepo.addVaccine(max.petId, {
@@ -654,7 +654,7 @@ async function seed() {
     recoveryInfo: 'Strict rest 8 weeks, physiotherapy 3x/week, follow-up X-ray after 6 weeks',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Rex: Rabies, DHPP, Bordetella + Cruciate Ligament Repair')
+  console.log('Rex: Rabies, DHPP, Bordetella + Cruciate Ligament Repair')
 
   // ─ Minka (Domestic Shorthair, 4y) ─
   await petRepo.addVaccine(whiskers.petId, {
@@ -669,7 +669,7 @@ async function seed() {
     nextDueDate: '2025-05-20',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Minka: FVRCP, FeLV')
+  console.log('Minka: FVRCP, FeLV')
 
   // ─ Olive (Ridgeback, 1y) ─
   await petRepo.addVaccine(charlie.petId, {
@@ -690,7 +690,7 @@ async function seed() {
     nextDueDate: '2026-02-10',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Olive: Rabies, DHPP, Leptospirosis (Puppy primary vaccination)')
+  console.log('Olive: Rabies, DHPP, Leptospirosis (Puppy primary vaccination)')
 
   // ─ Nala (Persian, 3y) ─
   await petRepo.addVaccine(nala.petId, {
@@ -712,7 +712,7 @@ async function seed() {
     recoveryInfo: 'Recovery in 10 days, cone collar for 7 days',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Nala: FVRCP, Rabies + Spay')
+  console.log('Nala: FVRCP, Rabies + Spay')
 
   // ─ Askari (Australian Shepherd, 2y) ─
   await petRepo.addVaccine(rocky.petId, {
@@ -740,7 +740,7 @@ async function seed() {
     recoveryInfo: 'Recovery in 10 days, restricted activity',
     veterinarianName: 'Dr. Sarah Weber',
   })
-  console.log('  ✓ Askari: Rabies, DHPP, Leptospirosis + Neutering')
+  console.log('Askari: Rabies, DHPP, Leptospirosis + Neutering')
 
   // ─ Lotte Berlin (Dachshund, 9y) ─
   await petRepo.addVaccine(lotteBerlin.petId, {
@@ -762,7 +762,7 @@ async function seed() {
     recoveryInfo: 'Strict rest 6 weeks, physiotherapy recommended, follow-up after 4 weeks',
     veterinarianName: 'Dr. Michael Huber',
   })
-  console.log('  ✓ Lotte (Berlin): Rabies, DHPP + Intervertebral Disc Surgery')
+  console.log('Lotte (Berlin): Rabies, DHPP + Intervertebral Disc Surgery')
 
   // ─ Susi Hamburg (English Setter/Labrador Mix, 4y) ─
   await petRepo.addVaccine(susiHamburg.petId, {
@@ -790,7 +790,7 @@ async function seed() {
     recoveryInfo: 'Soft food for 5 days, antibiotics for 7 days',
     veterinarianName: 'Dr. Jan Petersen',
   })
-  console.log('  ✓ Susi (Hamburg): Rabies, DHPP, Leptospirosis + Dental Cleaning')
+  console.log('Susi (Hamburg): Rabies, DHPP, Leptospirosis + Dental Cleaning')
 
   // ─ Timmi Köln (Domestic Shorthair, 6y) ─
   await petRepo.addVaccine(timmiKoeln.petId, {
@@ -818,11 +818,11 @@ async function seed() {
     recoveryInfo: 'Uncomplicated recovery in 7 days',
     veterinarianName: 'Dr. Claudia Klein',
   })
-  console.log('  ✓ Timmi (Köln): FVRCP, FeLV, Rabies + Neutering')
+  console.log('Timmi (Köln): FVRCP, FeLV, Rabies + Neutering')
 
   // ── Summary ──────────────────────────────────────────────────────────────
   console.log('\n' + '═'.repeat(60))
-  console.log('✅ Seed data created successfully!\n')
+  console.log('Seed data created successfully!\n')
   console.log('Test Accounts (Login Credentials):')
   console.log(`  Vet:              ${VET_EMAIL} / ${VET_PASSWORD}`)
   console.log(`  Owner (München):  ${OWNER_EMAIL} / ${OWNER_PASSWORD}`)
@@ -857,6 +857,6 @@ async function seed() {
 }
 
 seed().catch((err) => {
-  console.error('❌ Seed failed:', err)
+  console.error('Seed failed:', err)
   process.exit(1)
 })

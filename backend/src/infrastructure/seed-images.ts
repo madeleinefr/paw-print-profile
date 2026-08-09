@@ -45,7 +45,7 @@ const IMAGE_TAGS: Record<string, string[]> = {
 }
 
 async function seedImages() {
-  console.log('🖼️  Seeding pet images...\n')
+  console.log('Seeding pet images...\n')
 
   const imageRepo = new ImageRepository(TABLE_NAME)
 
@@ -82,14 +82,14 @@ async function seedImages() {
   }
 
   if (!seedImagesDir) {
-    console.error('❌ Could not find seed-images/ directory.')
+    console.error('Could not find seed-images/ directory.')
     console.error('   Searched:', possiblePaths.join(', '))
     process.exit(1)
   }
 
   console.log(`  Using images from: ${seedImagesDir}\n`)
   if (allPets.length === 0) {
-    console.error('❌ No pets found in DynamoDB. Run seed-data.ts first.')
+    console.error('No pets found in DynamoDB. Run seed-data.ts first.')
     process.exit(1)
   }
 
@@ -111,7 +111,7 @@ async function seedImages() {
 
     const imageFile = possibleFiles.find((f) => existsSync(f))
     if (!imageFile) {
-      console.log(`  ⚠ No image found for ${pet.name} — skipping`)
+      console.log(`No image found for ${pet.name} — skipping`)
       skipped++
       continue
     }
@@ -119,7 +119,7 @@ async function seedImages() {
     // Check if pet already has images
     const existingImages = await imageRepo.findByPet(pet.petId)
     if (existingImages.length > 0) {
-      console.log(`  ⚠ ${pet.name} already has ${existingImages.length} image(s) — skipping`)
+      console.log(`${pet.name} already has ${existingImages.length} image(s) — skipping`)
       skipped++
       continue
     }
@@ -137,15 +137,15 @@ async function seedImages() {
     })
 
     uploaded++
-    console.log(`  ✓ ${pet.name}: uploaded (${(imageBuffer.length / 1024).toFixed(0)} KB, tags: ${tags.join(', ')})`)
+    console.log(`${pet.name}: uploaded (${(imageBuffer.length / 1024).toFixed(0)} KB, tags: ${tags.join(', ')})`)
   }
 
   console.log(`\n${'═'.repeat(60)}`)
-  console.log(`✅ Image seeding complete: ${uploaded} uploaded, ${skipped} skipped`)
+  console.log(`Image seeding complete: ${uploaded} uploaded, ${skipped} skipped`)
   console.log('═'.repeat(60))
 }
 
 seedImages().catch((err) => {
-  console.error('❌ Image seeding failed:', err)
+  console.error('Image seeding failed:', err)
   process.exit(1)
 })

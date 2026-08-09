@@ -232,16 +232,32 @@ async function handleDownloadFlyer(
   if (pet.ownerId !== user.userId) return forbidden('You can only download flyers for your own pets')
   if (!pet.isMissing) return badRequest('NOT_MISSING', 'Pet is not currently reported as missing')
 
-  // Return the stored flyer URL from when the pet was reported missing
-  if (pet.flyerUrl) {
+  // Generate a fresh signed URL from the stored S3 key
+  if (pet.flyerS3Key) {
+    const factory = new AWSClientFactory()
+    const s3Client = factory.createS3Client()
+    const bucketName = process.env.S3_BUCKET ?? process.env.PET_IMAGES_BUCKET ?? 'paw-print-profile-images'
+
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: pet.flyerS3Key,
+    })
+    let flyerUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
+
+    // Replace Docker-internal hostnames for local dev
+    const localstackHost = process.env.LOCALSTACK_HOSTNAME
+    if (localstackHost && localstackHost !== 'localhost') {
+      flyerUrl = flyerUrl.replace(`http://${localstackHost}:`, 'http://localhost:')
+    }
+
     return respond(200, {
       petId,
-      flyerUrl: pet.flyerUrl,
+      flyerUrl,
       generatedAt: pet.updatedAt,
     })
   }
 
-  // Fallback: regenerate if no stored URL (e.g., legacy data)
+  // Fallback: regenerate if no stored S3 key (e.g., legacy data)
   const clinic = await clinicRepo.findById(pet.clinicId)
   const images = await imageRepo.findByPet(petId)
 

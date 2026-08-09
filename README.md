@@ -140,7 +140,7 @@ docker compose exec backend npx tsx src/infrastructure/seed-data.ts --force
 | Database | Amazon DynamoDB (single-table, 6 GSIs) |
 | Storage | Amazon S3 (pet images & PDF flyers) |
 | Auth | AWS Cognito (local: DynamoDB-backed LocalAuthService) |
-| Notifications | Amazon SNS / SES |
+| Notifications | Amazon SNS |
 | Frontend | React 18, Vite, React Router v6 |
 | Testing | Vitest, fast-check (property-based testing) |
 | Local Dev | Docker Compose, LocalStack 3.8 |
@@ -153,6 +153,7 @@ Tests require LocalStack running on `localhost:4566`. If Docker Compose is up, i
 
 ```bash
 cd backend
+cp .env.example .env   # Required when running tests outside Docker
 npm install
 npm test                  # All tests
 npm run test:unit         # Unit tests only (~218 tests)
@@ -293,4 +294,4 @@ All architectural decisions, requirements, and system designs are in the `docs/`
 - [Architecture & Diagrams](./docs/03_architecture.md)
 - [Correctness Properties](./docs/04_correctness_properties.md)
 - [Frameworks & Tools](./docs/05_frameworks_and_tools.md)
-- [Test Case Specifications](./docs/07_test_case_specifications.md)
+- [Test Case Specifications](./docs/06_test_case_specifications.md)

@@ -733,7 +733,7 @@ export class PetRepository {
    * @param isMissing - Whether the pet is currently missing
    * @returns The updated pet record
    */
-  async setMissingStatus(petId: string, isMissing: boolean, missingData?: { lastSeenLocation?: string; flyerUrl?: string }): Promise<Pet> {
+  async setMissingStatus(petId: string, isMissing: boolean, missingData?: { lastSeenLocation?: string; flyerUrl?: string; flyerS3Key?: string }): Promise<Pet> {
     const now = new Date().toISOString()
     let updateExpression = 'SET isMissing = :isMissing, updatedAt = :updatedAt'
     const expressionAttributeValues: Record<string, any> = {
@@ -750,8 +750,12 @@ export class PetRepository {
       updateExpression += ', flyerUrl = :flyerUrl'
       expressionAttributeValues[':flyerUrl'] = missingData.flyerUrl
     }
+    if (isMissing && missingData?.flyerS3Key) {
+      updateExpression += ', flyerS3Key = :flyerS3Key'
+      expressionAttributeValues[':flyerS3Key'] = missingData.flyerS3Key
+    }
     if (!isMissing) {
-      removeFields.push('lastSeenLocation', 'flyerUrl')
+      removeFields.push('lastSeenLocation', 'flyerUrl', 'flyerS3Key')
     }
 
     const fullExpression = removeFields.length > 0

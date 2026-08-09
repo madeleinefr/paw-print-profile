@@ -237,16 +237,6 @@ export class ClinicRepository {
    * @returns Array of clinics within the specified radius
    */
   async findNearby(latitude: number, longitude: number, radiusKm: number): Promise<Clinic[]> {
-    
-    const command = new QueryCommand({
-      TableName: this.tableName,
-      KeyConditionExpression: 'PK = :pk AND SK = :sk',
-      ExpressionAttributeValues: {
-        ':pk': 'CLINIC',
-        ':sk': 'METADATA',
-      },
-    })
-
     // Since we're using a single table design, we need to scan for clinics
     const allClinics = await this.getAllClinics()
     
@@ -265,17 +255,8 @@ export class ClinicRepository {
    * Get all clinics (helper method for nearby search)
    */
   private async getAllClinics(): Promise<Clinic[]> {
-    const command = new QueryCommand({
-      TableName: this.tableName,
-      FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
-      ExpressionAttributeValues: {
-        ':pk': 'CLINIC#',
-        ':sk': 'METADATA',
-      },
-    })
-
-    // Since DynamoDB doesn't support begins_with in KeyConditionExpression for the main table,
-    // we need to use Scan with FilterExpression
+    // DynamoDB doesn't support begins_with in KeyConditionExpression for the main table,
+    // so we use Scan with FilterExpression
     const scanCommand = new ScanCommand({
       TableName: this.tableName,
       FilterExpression: 'begins_with(PK, :pk) AND SK = :sk',
