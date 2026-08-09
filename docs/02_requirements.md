@@ -117,7 +117,7 @@
 2. WHEN a public search is executed, THE System SHALL strictly filter the results to only include pet profiles where the status is currently set to 'Missing'
 3. WHEN search results are displayed, THE System SHALL include pet photos, descriptions, and clinic contact information
 4. WHEN search results are displayed, THE System SHALL NOT display pet owner phone numbers or email addresses unless explicitly allowed by the owner
-5. WHEN search results are displayed, THE System SHALL THE System SHALL provide an anonymous contact web-form to contact the pet owner through the platform
+5. WHEN search results are displayed, THE System SHALL provide an anonymous contact web-form to contact the pet owner through the platform
 6. WHEN no matches are found, THE System SHALL display appropriate messaging
 7. WHEN latitude/longitude coordinates are provided in the search query, THE System SHALL rank results by proximity to the given location
 
@@ -188,7 +188,7 @@
 THE System SHALL respond to user requests within 2.0 seconds for 95% of all transactions under normal load conditions. (Priority: MVP)
 
 **[NFR-PERF-02] Search Performance**
-THE System SHALL complete pet search queries within 3.0 seconds for datasets containing up to 100,000 pet records. (Priority: MVP)
+THE System SHALL complete pet search queries within 3.0 seconds for datasets containing up to 100,000 pet records. (Priority: Post-Submission)
 
 **[NFR-PERF-03] Concurrent Users**
 THE System SHALL support at least 1,000 concurrent users without performance degradation. (Priority: MVP)
